@@ -5,127 +5,64 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CR Store Education System</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+    
+    <!-- Firebase SDK (최적화된 Compat 모드) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
     <style>
         :root { --bg: #fff; --text: #000; --border: #000; --gray: #888; --light: #f9f9f9; --accent: #ff4d4d; --blue: #0066cc; --green: #217346; }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Pretendard', sans-serif; -webkit-font-smoothing: antialiased; }
         body { background: var(--bg); color: var(--text); overflow-x: hidden; }
         .hidden { display: none !important; }
         
-        /* UI Components */
         .btn { border: 1px solid var(--border); background: #000; color: #fff; padding: 10px 18px; cursor: pointer; font-weight: 800; font-size: 11px; letter-spacing: 1px; transition: 0.2s; text-transform: uppercase; text-align: center; border-radius: 0; }
         .btn:hover { background: #fff; color: #000; }
         .btn-sm { padding: 6px 12px; font-size: 10px; }
         .btn-outline { background: #fff; color: #000; }
-        .btn-outline:hover { background: #000; color: #fff; }
         .btn-danger { border-color: var(--accent); color: var(--accent); background: #fff; }
-        .btn-danger:hover { background: var(--accent); color: #fff; }
         .btn-blue { border-color: var(--blue); color: var(--blue); background: #fff; }
-        .btn-blue:hover { background: var(--blue); color: #fff; }
         .btn-excel { border-color: var(--green); color: var(--green); background: #fff; }
-        .btn-excel:hover { background: var(--green); color: #fff; }
         .btn-full { width: 100%; display: block; }
 
-        input, select, textarea { background: #fff; border: 1px solid #ddd; padding: 10px; width: 100%; outline: none; margin-bottom: 10px; font-size: 13px; border-radius: 0; }
-        input:focus, select:focus { border-color: #000; }
-
-        /* Auth Screen */
-        #auth-overlay { position: fixed; inset: 0; background: #fff; z-index: 9999; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .auth-box { width: 100%; max-width: 360px; text-align: center; }
-        .auth-box h1 { font-size: 24px; font-weight: 900; margin-bottom: 40px; letter-spacing: -1px; }
-
-        /* Navigation */
+        input, select, textarea { background: #fff; border: 1px solid #ddd; padding: 10px; width: 100%; margin-bottom: 10px; font-size: 13px; border-radius: 0; }
         header { padding: 20px 50px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #000; position: sticky; top: 0; background: #fff; z-index: 100; }
-        header h1 { font-size: 18px; font-weight: 900; cursor: pointer; }
-        .nav-info { display: flex; align-items: center; gap: 15px; font-size: 11px; font-weight: 700; }
-
-        /* Layout */
         .container { max-width: 1400px; margin: 0 auto; padding: 40px 50px; }
         .section-header { margin: 40px 0 20px 0; border-bottom: 3px solid #000; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: flex-end; }
-        .section-title { font-size: 22px; font-weight: 900; }
-
-        /* Card */
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 30px; }
-        .card { border: 1px solid #eee; min-height: 400px; display: flex; flex-direction: column; justify-content: space-between; position: relative; transition: 0.2s; overflow: hidden; }
-        .card:hover { border-color: #000; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
-        .card-img { width: 100%; height: 160px; background: #f0f0f0; object-fit: cover; border-bottom: 1px solid #eee; }
-        .card-content { padding: 20px; flex-grow: 1; }
-        .card-tag { font-size: 9px; font-weight: 900; text-transform: uppercase; text-decoration: underline; margin-bottom: 8px; }
-        .card h3 { font-size: 18px; font-weight: 800; line-height: 1.3; }
-        .meta { font-size: 11px; color: #555; line-height: 1.7; margin-top: 12px; }
-        .mandatory-tag { background: var(--accent); color: #fff; padding: 4px 8px; font-size: 10px; font-weight: 900; position: absolute; top: 10px; left: 10px; z-index: 10; }
-
-        /* Panels */
+        .card { border: 1px solid #eee; min-height: 400px; display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
         .panel { margin-top: 30px; border: 1px solid #000; padding: 30px; background: #fff; }
-        .tabs { display: flex; gap: 20px; margin-bottom: 25px; border-bottom: 1px solid #eee; padding-bottom: 10px; flex-wrap: wrap; }
-        .tab-link { font-size: 11px; font-weight: 800; color: #ccc; cursor: pointer; }
+        .tabs { display: flex; gap: 20px; margin-bottom: 25px; border-bottom: 1px solid #eee; overflow-x: auto; }
+        .tab-link { font-size: 11px; font-weight: 800; color: #ccc; cursor: pointer; white-space: nowrap; }
         .tab-link.active { color: #000; text-decoration: underline; }
-
-        /* Tables */
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 600px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { border: 1px solid #eee; padding: 12px; text-align: left; font-size: 12px; }
-        th { background: #f9f9f9; font-weight: 800; }
         .badge { padding: 3px 6px; font-size: 9px; font-weight: 800; border: 1px solid #000; display: inline-block; }
-        .status-이수완료 { background: #000; color: #fff; }
+        .history-box { background: #f9f9f9; border: 2px solid #000; padding: 25px; margin: 20px 0; }
 
-        /* Admin UI */
-        .dept-selector { border: 1px solid #ddd; padding: 10px; max-height: 120px; overflow-y: auto; background: #fff; margin-bottom: 10px; }
-        .highlight-box { background: #f0f7ff; padding: 25px; border: 1px solid #cce5ff; margin-bottom: 30px; }
-        .history-box { background: #f9f9f9; border: 2px solid #000; padding: 25px; margin: 20px 0; overflow-x: auto; }
-        .notice-bar { background: var(--light); padding: 15px 25px; margin-bottom: 30px; border-left: 5px solid #000; font-size: 13px; display: flex; justify-content: space-between; cursor: pointer; }
-        .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 30px; }
-        .stat-card { border: 1px solid #eee; padding: 20px; text-align: center; background: #fafafa; }
-        .stat-card p { font-size: 24px; font-weight: 900; margin-top: 5px; }
-
-        /* 📱 Mobile Responsive Tweaks (V37.3 Added) */
-        @media (max-width: 850px) {
-            header { padding: 15px 20px; flex-direction: column; gap: 15px; text-align: center; }
-            .nav-info { width: 100%; justify-content: center; flex-wrap: wrap; }
-            .container { padding: 20px 15px; }
-            .section-header { flex-direction: column; align-items: flex-start; gap: 10px; }
-            .stats-row { grid-template-columns: repeat(2, 1fr); }
-            
-            /* Admin column layouts stack to 1 column */
-            #tab-a-user > div:first-child, 
-            #tab-a-train > div:first-child,
-            #tab-a-notice > div:first-child { 
-                grid-template-columns: 1fr !important; 
-            }
-            
-            /* Enable horizontal scrolling for all tables on mobile */
-            .panel, .history-box, #tab-my-apps, #tab-a-dash, #tab-a-mandatory {
-                overflow-x: auto;
-            }
-            
-            .tab-link { font-size: 10px; }
-            .auth-box h1 { font-size: 20px; }
+        /* 📱 Mobile Optimized */
+        @media (max-width: 768px) {
+            header { padding: 15px 20px; flex-direction: column; text-align: center; gap: 15px; }
+            .container { padding: 15px; }
+            .grid { grid-template-columns: 1fr; }
+            table { display: block; overflow-x: auto; }
+            #tab-a-user > div, #tab-a-train > div { grid-template-columns: 1fr !important; }
         }
     </style>
 </head>
 <body>
 
-<div id="auth-overlay">
-    <div id="login-form" class="auth-box">
-        <h1>CR Store<br>Education System</h1>
+<div id="loading-screen" style="position:fixed; inset:0; background:#fff; z-index:10000; display:flex; align-items:center; justify-content:center; font-weight:900;">
+    GM EDU SYSTEM 실시간 동기화 중...
+</div>
+
+<div id="auth-overlay" class="hidden">
+    <div class="auth-box" style="width:360px; margin:100px auto; text-align:center;">
+        <h1>CR Store Education</h1>
         <input type="text" id="login-id" placeholder="사번">
         <input type="password" id="login-pw" placeholder="비밀번호">
         <button class="btn btn-full" onclick="app.handleLogin()">로그인</button>
-        <p style="font-size: 11px; color: #999; margin-top: 20px;">* 어드민 등록 사번으로만 접속 가능합니다.</p>
-    </div>
-
-    <div id="onboarding-form" class="auth-box hidden">
-        <h2>프로필 최초 설정</h2>
-        <p style="font-size: 12px; color: #666; margin: 15px 0;">정보를 확인하고 비밀번호를 재설정하세요.</p>
-        <input type="text" id="init-name" placeholder="성함">
-        <input type="text" id="init-dept" placeholder="소속 매장/부서">
-        <select id="init-pos">
-            <option value="">직급/직책 선택 (필수)</option>
-            <option value="팀원">팀원</option><option value="부매니저">부매니저</option><option value="매니저">매니저</option>
-            <option value="하우스매니저">하우스매니저</option><option value="팀장">팀장</option><option value="기타">기타</option>
-        </select>
-        <input type="password" id="init-pw" placeholder="새 비밀번호">
-        <input type="password" id="init-pw-confirm" placeholder="비밀번호 확인">
-        <button class="btn btn-full" onclick="app.completeOnboarding()">저장 및 시작</button>
     </div>
 </div>
 
@@ -133,303 +70,225 @@
     <h1 onclick="app.goHome()">CR Store Education System</h1>
     <div class="nav-info">
         <span id="display-user"></span>
-        <button class="btn btn-outline btn-sm" onclick="app.togglePanel('mypage')">마이페이지</button>
-        <button id="admin-toggle-btn" class="btn btn-outline btn-sm hidden" onclick="app.togglePanel('admin')">어드민 패널</button>
-        <button class="btn btn-sm" onclick="app.logout()" style="border:none; text-decoration:underline;">로그아웃</button>
+        <button id="admin-toggle-btn" class="btn btn-outline btn-sm hidden" onclick="app.togglePanel('admin')">어드민</button>
+        <button class="btn btn-sm" onclick="location.reload()">로그아웃</button>
     </div>
 </header>
 
 <div class="container">
-    <div id="notice-bar-top" class="notice-bar" onclick="app.togglePanel('mypage', 'notice')">
-        <span><b>[공지]</b> <span id="notice-text">공지사항 로딩 중...</span></span>
-        <span>상세보기 &rarr;</span>
+    <div id="notice-bar-top" class="notice-bar" style="background:var(--light); padding:15px 25px; margin-bottom:30px; border-left:5px solid #000; font-size:13px; cursor:pointer;" onclick="app.togglePanel('mypage')">
+        <span><b>[공지]</b> <span id="notice-text">불러오는 중...</span></span>
     </div>
 
-    <div id="mypage-panel" class="panel hidden">
-        <div class="tabs">
-            <span class="tab-link active" onclick="app.switchTab('mypage', 'my-apps')">나의 학습 현황</span>
-            <span class="tab-link" onclick="app.switchTab('mypage', 'my-notices')">공지사항</span>
-            <span class="tab-link" onclick="app.switchTab('mypage', 'my-account')">정보 변경</span>
-        </div>
-        <div id="tab-my-apps">
-            <button class="btn btn-sm btn-excel" onclick="app.exportCSV('my-apps')" style="margin-bottom:10px;">내 이력 다운로드</button>
-            <table id="my-apps-table"></table>
-        </div>
-        <div id="tab-my-notices" class="hidden"><div id="notice-archive-list"></div></div>
-        <div id="tab-my-account" class="hidden">
-            <div style="max-width:400px;">
-                <p id="my-profile-info" style="margin-bottom:20px; line-height:2.2;"></p>
-                <input type="password" id="my-new-pw" placeholder="새 비밀번호 입력">
-                <button class="btn btn-sm" onclick="app.changePasswordDirect()">변경 저장</button>
-            </div>
-        </div>
-    </div>
-
+    <!-- Admin Panel -->
     <div id="admin-panel" class="panel hidden">
         <div class="tabs">
             <span class="tab-link active" onclick="app.switchTab('admin', 'a-dash')">대시보드</span>
-            <span class="tab-link" onclick="app.switchTab('admin', 'a-user')">인사 관리/검색</span>
-            <span class="tab-link" onclick="app.switchTab('admin', 'a-train')">교육 등록/편집</span>
-            <span class="tab-link" onclick="app.switchTab('admin', 'a-mandatory')">의무교육 추적</span>
-            <span class="tab-link" onclick="app.switchTab('admin', 'a-notice')">공지사항 관리</span>
+            <span class="tab-link" onclick="app.switchTab('admin', 'a-user')">인사/이수 관리</span>
+            <span class="tab-link" onclick="app.switchTab('admin', 'a-train')">교육 등록</span>
         </div>
 
         <div id="tab-a-dash">
-            <div class="stats-row">
-                <div class="stat-card"><span>총 유저</span><p id="st-u">0</p></div>
-                <div class="stat-card"><span>활성 교육</span><p id="st-t">0</p></div>
-                <div class="stat-card"><span>대기 신청</span><p id="st-w">0</p></div>
-                <div class="stat-card"><span>수료 완료</span><p id="st-d">0</p></div>
+            <div class="stats-row" style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:20px;">
+                <div class="stat-card" style="border:1px solid #eee; padding:20px; text-align:center;"><span>총 유저</span><p id="st-u">0</p></div>
+                <div class="stat-card" style="border:1px solid #eee; padding:20px; text-align:center;"><span>교육</span><p id="st-t">0</p></div>
+                <div class="stat-card" style="border:1px solid #eee; padding:20px; text-align:center;"><span>대기</span><p id="st-w">0</p></div>
+                <div class="stat-card" style="border:1px solid #eee; padding:20px; text-align:center;"><span>완료</span><p id="st-d">0</p></div>
             </div>
-            <div class="section-header"><h3 class="section-title">교육 마스터 관리</h3></div>
-            <input type="text" id="t-master-search" placeholder="교육명 검색..." onkeyup="app.renderAdminDashboard()" style="width:100%;">
             <table id="admin-master-train-table"></table>
-            <div id="admin-train-detail-box" class="hidden history-box">
-                <h3 id="detail-train-title">신청자 명단 상세 관리</h3>
-                <table id="admin-train-app-table"></table>
-            </div>
         </div>
 
         <div id="tab-a-user" class="hidden">
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:30px; margin-bottom:30px;">
-                <div class="admin-form" style="border:1px solid #000; padding:20px; background:#fafafa;">
-                    <h4 id="u-edit-title">👤 임직원 개별 등록/편집</h4>
-                    <input type="text" id="u-id" placeholder="사번">
-                    <input type="text" id="u-name" placeholder="성함">
-                    <input type="text" id="u-dept" placeholder="소속 (매장명)">
-                    <select id="u-pos">
-                        <option value="미설정">직급/직책 선택</option>
-                        <option value="팀원">팀원</option><option value="부매니저">부매니저</option><option value="매니저">매니저</option>
-                        <option value="하우스매니저">하우스매니저</option><option value="팀장">팀장</option>
-                    </select>
-                    <select id="u-role"><option value="user">일반 권한</option><option value="admin">어드민 권한</option></select>
-                    <button class="btn btn-sm btn-full" onclick="app.adminSaveUser()">임직원 정보 저장</button>
-                    <button class="btn btn-sm btn-outline btn-full" style="margin-top:5px;" onclick="app.clearUserForm()">입력창 초기화</button>
-                </div>
-                <div class="highlight-box" style="margin-bottom:0;">
-                    <h4>📊 일괄 엑셀 업로드 (인사발령 대응)</h4>
-                    <input type="file" id="excel-input" accept=".xlsx, .xls, .csv" style="margin-bottom:10px;">
-                    <button class="btn btn-excel btn-full" onclick="app.handleExcelUpload()">엑셀 파일 동기화 실행</button>
-                    <p style="font-size:11px; color:#666; margin-top:10px;">* 사번 기준 이름/소속 최신화 (학습 이력 유지)</p>
-                </div>
+            <div style="background:#f0f7ff; padding:20px; margin-bottom:20px; border:1px solid #cce5ff;">
+                <h4>📊 엑셀 일괄 동기화 (A:사번, B:이름, C:소속)</h4>
+                <input type="file" id="excel-input" accept=".xlsx, .xls, .csv">
+                <button class="btn btn-excel btn-full" onclick="app.handleExcelUpload()">업로드 및 동기화</button>
             </div>
-
-            <div class="section-header">
-                <h3>임직원 명부 및 교육 이수 관리</h3>
-                <button class="btn btn-sm btn-excel" onclick="app.exportCSV('admin-user')">전체 명부 다운로드</button>
-            </div>
-            <input type="text" id="u-search" placeholder="성함, 사번, 소속 통합 검색..." onkeyup="app.renderAdminUserList()" style="width:100%; border:2px solid #000;">
-            
+            <input type="text" id="u-search" placeholder="성함, 사번 검색..." onkeyup="app.renderAdminUserList()" style="width:100%;">
             <div id="u-history-box" class="hidden history-box">
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px;">
-                    <div>
-                        <h3 id="u-history-title" style="margin-bottom:5px;">직원 교육 이력</h3>
-                        <p style="font-size:12px; color:#666;">해당 직원의 모든 수강 내역을 확인하고 관리합니다.</p>
-                    </div>
-                    <button class="btn btn-sm btn-outline" onclick="document.getElementById('u-history-box').classList.add('hidden')">닫기</button>
-                </div>
-                <div style="background:#fff; padding:15px; border:1px solid #ddd; margin-bottom:15px; display:flex; gap:10px; align-items:center;">
-                    <span style="font-size:12px; font-weight:800;">[이력 강제 추가]</span>
+                <h3 id="u-history-title"></h3>
+                <div style="margin:15px 0; display:flex; gap:10px;">
                     <select id="arch-select" style="flex:2; margin:0;"></select>
-                    <select id="arch-status-select" style="flex:1; margin:0;">
-                        <option value="신청중">신청중</option><option value="신청완료">신청완료</option>
-                        <option value="이수완료" selected>이수완료</option><option value="미이수">미이수</option>
-                    </select>
-                    <button class="btn btn-sm" onclick="app.manualAddHistory()">추가 실행</button>
+                    <button class="btn btn-sm" onclick="app.manualAddHistory()">강제 이력 추가</button>
                 </div>
                 <table id="u-history-table"></table>
             </div>
-
-            <table id="admin-u-table" style="margin-top:20px;"></table>
+            <table id="admin-u-table"></table>
         </div>
 
         <div id="tab-a-train" class="hidden">
-            <div style="display:grid; grid-template-columns: 450px 1fr; gap:30px;">
-                <div class="admin-form">
-                    <h4 id="t-form-title">교육 과정 등록/수정</h4>
-                    <input type="hidden" id="edit-t-id">
-                    <div style="background:#fff3f3; padding:15px; border:1px solid #ffcccc; margin-bottom:15px;">
-                        <label style="font-weight:900;"><input type="checkbox" id="t-mandatory" onchange="app.toggleDeptSection()"> ⚠️ 의무교육 설정</label>
-                        <div id="dept-select-section" class="hidden" style="margin-top:10px;">
-                            <div id="dept-checkbox-list" class="dept-selector"></div>
-                        </div>
-                    </div>
-                    <input type="text" id="t-title" placeholder="교육 명칭">
-                    <select id="t-cat-sel"></select>
-                    <input type="text" id="t-pic" placeholder="담당자"><input type="text" id="t-place" placeholder="장소">
-                    <input type="text" id="t-img" placeholder="배너 이미지 URL"><input type="text" id="t-survey" placeholder="설문 링크">
-                    <input type="date" id="t-dead" title="마감일"><input type="number" id="t-quota" placeholder="세션당 정원">
-                    <div class="session-builder-box">
-                        <p style="font-weight:900; font-size:12px; margin-bottom:10px;">🕒 세션 설정</p>
-                        <input type="date" id="s-date"><div style="display:flex; gap:5px;"><input type="time" id="s-start" style="flex:1;"><input type="time" id="s-end" style="flex:1;"></div>
-                        <div style="display:flex; align-items:center; gap:10px; margin-top:5px;"><label style="font-size:11px;"><input type="checkbox" id="s-break-check" onchange="document.getElementById('s-break-val').disabled = !this.checked"> 휴게(h)</label><input type="number" id="s-break-val" placeholder="0.5" step="0.5" style="width:70px; margin:0;" disabled></div>
-                        <button class="btn btn-sm btn-full btn-outline" style="margin-top:10px;" onclick="app.addSessionToList()">+ 세션 추가</button>
-                    </div>
-                    <label style="font-size:12px;"><input type="checkbox" id="t-vis-check" checked style="width:auto;"> 메인 노출</label>
-                    <button id="t-save-btn" class="btn btn-sm btn-full" onclick="app.saveTraining()" style="margin-top:10px;">최종 저장</button>
-                </div>
-                <div>
-                    <h4>등록된 세션 목록</h4>
-                    <div id="added-sessions-box" class="session-list-preview"></div>
-                    <h4 style="margin-top:30px;">카테고리 관리</h4>
-                    <div style="display:flex; gap:10px; margin-bottom:15px;"><input type="text" id="new-cat-input" placeholder="새 카테고리" style="width:150px; margin:0;"><button class="btn btn-sm" onclick="app.addCategory()">추가</button></div>
-                    <div id="cat-tags-box" style="display:flex; gap:10px; flex-wrap:wrap;"></div>
-                </div>
-            </div>
-        </div>
-
-        <div id="tab-a-mandatory" class="hidden">
-            <div id="mandatory-train-list"></div>
-            <div id="mandatory-incomplete-box" class="hidden history-box" style="background:#fff3f3; border-color:#ffcccc;">
-                <h3 id="m-detail-title">미이수자 명단</h3>
-                <table id="mandatory-incomplete-table"></table>
-            </div>
-        </div>
-
-        <div id="tab-a-notice" class="hidden">
-            <div style="display:grid; grid-template-columns: 400px 1fr; gap:30px;">
-                <div class="admin-form">
-                    <h4 id="n-form-title">공지사항 관리</h4>
-                    <input type="hidden" id="edit-n-id">
-                    <textarea id="n-input" placeholder="내용" style="height:150px;"></textarea>
-                    <label style="font-size:12px;"><input type="checkbox" id="n-pin" style="width:auto; margin:0;"> 메인 고정</label>
-                    <button class="btn btn-sm btn-full" onclick="app.saveNotice()">게시</button>
-                </div>
-                <table id="admin-notice-table"></table>
-            </div>
+            <input type="text" id="t-title" placeholder="교육 명칭">
+            <input type="text" id="t-place" placeholder="장소">
+            <input type="number" id="t-quota" placeholder="정원">
+            <button class="btn btn-full" onclick="app.saveTraining()">교육 최종 저장</button>
         </div>
     </div>
 
+    <!-- Main Content -->
     <div id="main-content">
-        <div class="section-header">
-            <h2 class="section-title">COURSE CATALOG</h2>
-            <select id="cat-filter" onchange="app.renderHome()" style="width:180px; margin:0; font-weight:800; border:2px solid #000;"></select>
-        </div>
         <div id="training-grid" class="grid"></div>
     </div>
 </div>
 
 <script>
+    // ⚠️ 찬호 님의 Firebase Config 자동 적용
+    const firebaseConfig = {
+        apiKey: "AIzaSyD-d8gTqhpFinzg-sACv-HKqPaFOKjhJAI",
+        authDomain: "cr-store-edu-system.firebaseapp.com",
+        projectId: "cr-store-edu-system",
+        storageBucket: "cr-store-edu-system.firebasestorage.app",
+        messagingSenderId: "663570679286",
+        appId: "1:663570679286:web:96c91e668ab180ac9673d7",
+        databaseURL: "https://cr-store-edu-system-default-rtdb.firebaseio.com/"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
     const app = {
-        tempSessions: [], targetUser: null,
-        state: {
-            user: null, isAdmin: false,
-            statusOptions: ["신청중", "신청완료", "이수완료", "미이수", "신청취소"],
-            cats: JSON.parse(localStorage.getItem('cr_v37_cats')) || ["신규 교육", "제품 교육", "스토리"],
-            trainings: JSON.parse(localStorage.getItem('cr_v37_t')) || [],
-            apps: JSON.parse(localStorage.getItem('cr_v37_a')) || [],
-            notices: JSON.parse(localStorage.getItem('cr_v37_n')) || [],
-            users: JSON.parse(localStorage.getItem('cr_v37_u')) || { 'monster1246': { pw: '1234', isFirst: false, role: 'admin', name: '마스터', dept: 'HQ', pos: '팀장' } }
+        state: { user: null, users: {}, trainings: [], apps: [], notices: [], statusOptions: ["신청중", "신청완료", "이수완료", "미이수", "신청취소"] },
+
+        init: function() {
+            // Firebase 실시간 리스너 활성화
+            db.ref('/').on('value', (snapshot) => {
+                const data = snapshot.val() || {};
+                this.state.users = data.users || { 'monster1246': { pw: '1234', role: 'admin', name: '마스터' } };
+                this.state.trainings = data.trainings || [];
+                this.state.apps = data.apps || [];
+                this.state.notices = data.notices || [{ text: "환영합니다! 교육 시스템입니다.", pin: true }];
+
+                document.getElementById('loading-screen').classList.add('hidden');
+                if(!this.state.user) {
+                    document.getElementById('auth-overlay').classList.remove('hidden');
+                } else {
+                    this.renderHome();
+                }
+            });
         },
 
-        /* Auth */
+        // 서버에 데이터 저장 (중앙 집중형)
+        save: function() {
+            db.ref('/').update({
+                users: this.state.users,
+                trainings: this.state.trainings,
+                apps: this.state.apps,
+                notices: this.state.notices
+            });
+        },
+
         handleLogin: function() {
-            const id = document.getElementById('login-id').value.trim(), pw = document.getElementById('login-pw').value.trim(), u = this.state.users[id];
+            const id = document.getElementById('login-id').value.trim();
+            const pw = document.getElementById('login-pw').value.trim();
+            const u = this.state.users[id];
             if(!u) return alert("등록되지 않은 사번입니다.");
             if(u.pw === pw) {
-                if(u.isFirst) { this.state.user = id; document.getElementById('login-form').classList.add('hidden'); document.getElementById('onboarding-form').classList.remove('hidden'); document.getElementById('init-name').value = u.name || ''; document.getElementById('init-dept').value = u.dept || ''; }
-                else this.initSession(id);
-            } else alert("비번 불일치");
-        },
-        initSession: function(id) { 
-            this.state.user = id; 
-            document.getElementById('auth-overlay').classList.add('hidden'); 
-            document.getElementById('display-user').innerText = `${this.state.users[id].name} (${id})`; 
-            if(this.state.users[id].role === 'admin') { 
-                document.getElementById('admin-toggle-btn').classList.remove('hidden'); 
-                this.state.isAdmin = true; 
-            } 
-            this.renderHome(); 
+                this.state.user = id;
+                document.getElementById('auth-overlay').classList.add('hidden');
+                this.renderHome();
+            } else alert("비밀번호가 틀렸습니다.");
         },
 
-        /* Personnel & Education History Management (V37) */
+        renderHome: function() {
+            const u = this.state.users[this.state.user];
+            document.getElementById('display-user').innerText = `${u.name}님 환영합니다.`;
+            if(u.role === 'admin') document.getElementById('admin-toggle-btn').classList.remove('hidden');
+
+            const grid = document.getElementById('training-grid');
+            grid.innerHTML = this.state.trainings.map(t => `
+                <div class="card">
+                    <div class="card-content">
+                        <h3>${t.title}</h3>
+                        <p class="meta">📍 ${t.place}<br>👥 정원: ${t.quota}명</p>
+                    </div>
+                    <button class="btn btn-full" onclick="app.apply(${t.id})">신청하기</button>
+                </div>
+            `).join('');
+            
+            const pin = this.state.notices.find(n => n.pin) || this.state.notices[0];
+            document.getElementById('notice-text').innerText = pin ? pin.text : "공지사항이 없습니다.";
+            
+            this.renderAdminUserList();
+            this.renderAdminDashboard();
+        },
+
+        apply: function(tId) {
+            const t = this.state.trainings.find(i=>i.id == tId);
+            if(this.state.apps.find(a=>a.tId==tId && a.uId==this.state.user)) return alert("이미 신청한 교육입니다.");
+            this.state.apps.push({ tId, tTitle: t.title, uId: this.state.user, uName: this.state.users[this.state.user].name, status: '신청중', date: new Date().toLocaleDateString() });
+            this.save(); alert("신청 완료!");
+        },
+
         renderAdminUserList: function() {
-            const q = document.getElementById('u-search').value.toLowerCase().replace(/\s/g,'');
-            const fids = Object.keys(this.state.users).filter(id => { const u = this.state.users[id]; return (id + (u.name||'') + (u.dept||'')).toLowerCase().includes(q); });
-            document.getElementById('admin-u-table').innerHTML = `<thead><tr><th>사번</th><th>성함</th><th>소속</th><th>관리</th></tr></thead><tbody>` + fids.map(id => `<tr><td>${id}</td><td>${this.state.users[id].name}</td><td>${this.state.users[id].dept}</td><td>
-                <button class="btn btn-sm btn-outline" onclick="app.loadUserEdit('${id}')">편집</button>
-                <button class="btn btn-sm btn-outline" style="border-color:var(--blue); color:var(--blue);" onclick="app.showHistory('${id}')">이수관리</button>
-                <button class="btn btn-sm btn-blue" onclick="app.resetUserPw('${id}')">초기화</button>
-                <button class="btn btn-sm btn-danger" onclick="app.deleteUser('${id}')">삭제</button>
-            </td></tr>`).join('') + `</tbody>`;
+            const q = document.getElementById('u-search').value.toLowerCase();
+            const fids = Object.keys(this.state.users).filter(id => id.includes(q) || this.state.users[id].name.toLowerCase().includes(q));
+            document.getElementById('admin-u-table').innerHTML = `<thead><tr><th>사번</th><th>성함</th><th>관리</th></tr></thead><tbody>` + 
+                fids.map(id => `<tr><td>${id}</td><td>${this.state.users[id].name}</td><td>
+                <button class="btn btn-sm btn-outline" onclick="app.showHistory('${id}')">이수관리</button>
+                <button class="btn btn-sm btn-danger" onclick="app.deleteUser('${id}')">삭제</button></td></tr>`).join('') + `</tbody>`;
             document.getElementById('arch-select').innerHTML = `<option value="">교육 선택</option>` + this.state.trainings.map(t=>`<option value="${t.id}">${t.title}</option>`).join('');
         },
+
         showHistory: function(id) {
-            this.state.targetUser = id; const u = this.state.users[id]; document.getElementById('u-history-box').classList.remove('hidden');
-            document.getElementById('u-history-title').innerText = `${u.name}(${id}) 님의 교육 이력 관리`;
+            this.state.targetUser = id;
+            document.getElementById('u-history-box').classList.remove('hidden');
+            document.getElementById('u-history-title').innerText = `${this.state.users[id].name} 님 교육 이력`;
             const h = this.state.apps.filter(a => a.uId == id);
-            document.getElementById('u-history-table').innerHTML = `<thead><tr><th>교육명</th><th>일시</th><th>상태 변경</th><th>삭제</th></tr></thead><tbody>` + 
-                h.map(x => `<tr><td>${x.tTitle}</td><td>${x.date}</td><td><select onchange="app.statusChange(${x.tId},'${x.uId}',this.value)">${this.state.statusOptions.map(opt=>`<option value="${opt}" ${x.status===opt?'selected':''}>${opt}</option>`).join('')}</select></td><td><button class="btn btn-sm btn-danger" onclick="app.delH(${x.tId},'${x.uId}')">X</button></td></tr>`).join('') + `</tbody>`;
-            window.scrollTo({top: document.getElementById('u-history-box').offsetTop - 100, behavior:'smooth'});
-        },
-        manualAddHistory: function() {
-            const tId = document.getElementById('arch-select').value, s = document.getElementById('arch-status-select').value;
-            if(!tId || !this.state.targetUser) return alert("교육을 선택하세요.");
-            const t = this.state.trainings.find(i=>i.id == tId);
-            if(this.state.apps.find(a=>a.tId==tId && a.uId==this.state.targetUser)) return alert("이미 이력이 존재합니다.");
-            this.state.apps.push({ tId: t.id, tTitle: t.title, uId: this.state.targetUser, uName: this.state.users[this.state.targetUser].name, status: s, date: t.sessions[0].date, applyDate: '관리자수동' });
-            this.save(); this.showHistory(this.state.targetUser); this.renderAdminDashboard();
+            document.getElementById('u-history-table').innerHTML = `<thead><tr><th>교육명</th><th>상태</th><th>삭제</th></tr></thead><tbody>` + 
+                h.map(x => `<tr><td>${x.tTitle}</td><td><select onchange="app.statusChange(${x.tId},'${x.uId}',this.value)">${this.state.statusOptions.map(opt=>`<option value="${opt}" ${x.status===opt?'selected':''}>${opt}</option>`).join('')}</select></td><td><button class="btn btn-sm btn-danger" onclick="app.delH(${x.tId},'${x.uId}')">X</button></td></tr>`).join('') + `</tbody>`;
         },
 
-        /* Global Functionalities */
-        save: function() { localStorage.setItem('cr_v37_cats', JSON.stringify(this.state.cats)); localStorage.setItem('cr_v37_t', JSON.stringify(this.state.trainings)); localStorage.setItem('cr_v37_a', JSON.stringify(this.state.apps)); localStorage.setItem('cr_v37_n', JSON.stringify(this.state.notices)); localStorage.setItem('cr_v37_u', JSON.stringify(this.state.users)); },
-        logout: function() { location.reload(); },
-        goHome: function() { document.querySelectorAll('.panel').forEach(p => p.classList.add('hidden')); document.getElementById('main-content').classList.remove('hidden'); this.renderHome(); },
-        togglePanel: function(p) { document.querySelectorAll('.panel').forEach(el => el.classList.add('hidden')); document.getElementById('main-content').classList.add('hidden'); document.getElementById(p+'-panel').classList.remove('hidden'); },
-        switchTab: function(p, t) { document.querySelectorAll(`#${p}-panel [id^="tab-"]`).forEach(x => x.classList.add('hidden')); document.getElementById('tab-'+t).classList.remove('hidden'); document.querySelectorAll(`#${p}-panel .tab-link`).forEach(l => l.classList.remove('active')); event.target.classList.add('active'); if(t==='a-user') this.renderAdminUserList(); if(t==='a-dash') this.renderAdminDashboard(); if(t==='a-mandatory') this.renderMandatoryList(); if(t==='a-notice') this.renderAdminNoticeList(); },
-        renderHome: function() {
-            if(!this.state.user) return; const today = new Date().setHours(0,0,0,0), uDept = this.state.users[this.state.user].dept, fCat = document.getElementById('cat-filter');
-            fCat.innerHTML = `<option value="ALL">전체 카테고리</option>` + this.state.cats.map(c=>`<option value="${c}">${c}</option>`).join('');
-            document.getElementById('t-cat-sel').innerHTML = this.state.cats.map(c=>`<option value="${c}">${c}</option>`).join('');
-            document.getElementById('cat-tags-box').innerHTML = this.state.cats.map(c=>`<span class="badge" onclick="app.delCat('${c}')" style="cursor:pointer; margin-bottom:5px;">${c} ✕</span>`).join('');
-            const aD = [...new Set(Object.values(this.state.users).map(u => u.dept))].filter(d => d); document.getElementById('dept-checkbox-list').innerHTML = aD.map(d => `<label style="display:block; font-size:11px;"><input type="checkbox" class="dept-check" value="${d}"> ${d}</label>`).join('');
-            const filtered = fCat.value === 'ALL' ? this.state.trainings.filter(t=>t.active) : this.state.trainings.filter(t=>t.cat === fCat.value && t.active);
-            document.getElementById('training-grid').innerHTML = filtered.map(t => {
-                const count = this.state.apps.filter(a=>a.tId==t.id && a.status !== '신청취소').length, isClosed = new Date(t.deadline) < today || count >= (t.quota * t.sessions.length) || t.forceClosed;
-                return `<div class="card">${t.isMandatory && t.targetDepts.includes(uDept) ? `<div class="mandatory-tag">REQUIRED</div>` : ''}${t.img?`<img src="${t.img}" class="card-img">`:''}<div class="card-content"><p class="card-tag">${t.cat}</p><h3>${t.title}</h3><div class="meta">📍 ${t.place}<br>📅 <select id="s-select-${t.id}">${t.sessions.map(s => `<option value="${s.date} ${s.start}">${s.date}, ${s.start}~${s.end}</option>`).join('')}</select></div></div><button class="btn btn-full ${isClosed?'btn-outline':''}" onclick="${isClosed?'':'app.apply('+t.id+')'}">신청하기</button></div>`;
-            }).join('');
-            const pin = this.state.notices.find(n => n.pin) || this.state.notices[0]; document.getElementById('notice-text').innerText = pin ? pin.text : "공지사항 없음";
-            this.renderMyPage(); if(this.state.isAdmin) { this.renderAdminDashboard(); this.renderMandatoryList(); }
+        statusChange: function(tId,uId,ns) {
+            const idx = this.state.apps.findIndex(a=>a.tId==tId && a.uId==uId);
+            if(idx>-1) { this.state.apps[idx].status = ns; this.save(); }
         },
-        apply: function(tId) { const v = document.getElementById(`s-select-${tId}`).value; if(this.state.apps.find(a=>a.tId==tId && a.uId==this.state.user && a.status !== '신청취소')) return alert("이미 신청함"); this.state.apps.push({ tId, tTitle: this.state.trainings.find(i=>i.id==tId).title, uId: this.state.user, uName: this.state.users[this.state.user].name, status: '신청중', date: v, applyDate: new Date().toLocaleDateString() }); this.save(); alert("완료"); this.renderHome(); },
-        adminSaveUser: function() { const id = document.getElementById('u-id').value.trim(); if(!id) return alert("사번 필수"); if(!this.state.users[id]) this.state.users[id] = { pw: '1234', isFirst: true, role: 'user' }; Object.assign(this.state.users[id], { name: document.getElementById('u-name').value, dept: document.getElementById('u-dept').value, pos: document.getElementById('u-pos').value, role: document.getElementById('u-role').value }); this.save(); this.clearUserForm(); this.renderAdminUserList(); alert("저장 완료"); },
-        handleExcelUpload: function() { const fi = document.getElementById('excel-input'), file = fi.files[0]; if(!file) return alert("파일 선택"); const reader = new FileReader(); reader.onload = (e) => { const workbook = XLSX.read(new Uint8Array(e.target.result), {type: 'array'}); const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {header: 1}); let n = 0, u = 0; for(let i = 1; i < rows.length; i++) { const id = rows[i][0] ? String(rows[i][0]).trim() : '', name = rows[i][1] ? String(rows[i][1]).trim() : '', dept = rows[i][2] ? String(rows[i][2]).trim() : ''; if(id) { if(!this.state.users[id]) { this.state.users[id] = { pw: '1234', isFirst: true, role: 'user', name, dept, pos: '미설정' }; n++; } else { this.state.users[id].name = name; this.state.users[id].dept = dept; u++; } } } this.save(); alert(`신규 ${n}명 / 업데이트 ${u}명 완료`); this.renderAdminUserList(); fi.value = ''; }; reader.readAsArrayBuffer(file); },
-        addSessionToList: function() { const d = document.getElementById('s-date').value, s = document.getElementById('s-start').value, e = document.getElementById('s-end').value, bVal = document.getElementById('s-break-check').checked ? parseFloat(document.getElementById('s-break-val').value || 0) : 0; if(!d || !s || !e) return alert("일시 입력"); const total = Math.max(0, (new Date(`2000-01-01T${e}`) - new Date(`2000-01-01T${s}`)) / 3600000 - bVal).toFixed(1); this.tempSessions.push({ id: Date.now(), date: d, start: s, end: e, breakVal: bVal, total }); this.renderTempSessions(); },
-        renderTempSessions: function() { document.getElementById('added-sessions-box').innerHTML = this.tempSessions.map(s => `<div style="display:flex; justify-content:space-between; padding:5px; border-bottom:1px solid #eee; font-size:11px;"><span>📅 ${s.date} | ${s.start}~${s.end} (${s.total}h)</span><button onclick="app.removeSession(${s.id})">X</button></div>`).join(''); },
-        removeSession: function(id) { this.tempSessions = this.tempSessions.filter(s=>s.id!==id); this.renderTempSessions(); },
-        saveTraining: function() { const editId = document.getElementById('edit-t-id').value, depts = Array.from(document.querySelectorAll('.dept-check:checked')).map(c=>c.value); const data = { id: editId ? Number(editId) : Date.now(), title: document.getElementById('t-title').value, cat: document.getElementById('t-cat-sel').value, pic: document.getElementById('t-pic').value, img: document.getElementById('t-img').value, survey: document.getElementById('t-survey').value, place: document.getElementById('t-place').value, deadline: document.getElementById('t-dead').value, quota: parseInt(document.getElementById('t-quota').value)||99, isMandatory: document.getElementById('t-mandatory').checked, targetDepts: depts, sessions: [...this.tempSessions], active: document.getElementById('t-vis-check').checked, forceClosed: false }; if(!data.title || data.sessions.length === 0) return alert("정보 확인"); if(editId) this.state.trainings[this.state.trainings.findIndex(t => t.id == editId)] = data; else this.state.trainings.unshift(data); this.save(); this.clearTrainForm(); this.renderHome(); alert("저장 완료"); },
-        renderAdminDashboard: function() { document.getElementById('st-u').innerText=Object.keys(this.state.users).length; document.getElementById('st-t').innerText=this.state.trainings.filter(t=>t.active).length; document.getElementById('st-w').innerText=this.state.apps.filter(a=>["신청중","신청완료"].includes(a.status)).length; document.getElementById('st-d').innerText=this.state.apps.filter(a=>a.status==="이수완료").length; const q=document.getElementById('t-master-search').value.toLowerCase(); document.getElementById('admin-master-train-table').innerHTML=`<thead><tr><th>제목</th><th>관리</th></tr></thead><tbody>`+this.state.trainings.filter(t=>t.title.toLowerCase().includes(q)).map(t=>`<tr><td>${t.title}</td><td><button class="btn btn-sm" onclick="app.showApplicants(${t.id})">명단</button><button class="btn btn-sm btn-outline" onclick="app.editTMode(${t.id})">수정</button><button class="btn btn-sm btn-danger" onclick="app.deleteTraining(${t.id})">X</button></td></tr>`).join('')+`</tbody>`; },
-        deleteTraining: function(id) { if(confirm("영구 삭제?")) { this.state.trainings=this.state.trainings.filter(t=>t.id!==id); this.state.apps=this.state.apps.filter(a=>a.tId!==id); this.save(); this.renderAdminDashboard(); this.renderHome(); }},
-        showApplicants: function(tId) { this.state.targetTrainId=tId; document.getElementById('admin-train-detail-box').classList.remove('hidden'); this.renderTrainAppList(); },
-        renderTrainAppList: function() { const list=this.state.apps.filter(a => a.tId == this.state.targetTrainId); document.getElementById('admin-train-app-table').innerHTML=`<thead><tr><th>성함</th><th>상태</th><th>관리</th></tr></thead><tbody>`+list.map(a => `<tr><td>${a.uName}</td><td><select onchange="app.statusChange(${a.tId},'${a.uId}',this.value)">${this.state.statusOptions.map(opt=>`<option value="${opt}" ${a.status===opt?'selected':''}>${opt}</option>`).join('')}</select></td><td><button class="btn btn-sm btn-danger" onclick="app.adminCancelApp(${a.tId},'${a.uId}')">X</button></td></tr>`).join('')+`</tbody>`; },
-        statusChange: function(tId,uId,ns) { const idx=this.state.apps.findIndex(a=>a.tId==tId&&a.uId==uId); if(idx>-1){this.state.apps[idx].status=ns;this.save();this.renderAdminDashboard(); if(this.state.targetUser==uId)this.showHistory(uId);}},
-        resetUserPw: function(id) { if(id==='monster1246') return; if(confirm("1234로 초기화?")) { this.state.users[id].pw='1234'; this.state.users[id].isFirst=true; this.save(); alert("완료"); }},
-        deleteUser: function(id) { if(id==='monster1246' || !confirm("영구 삭제?")) return; delete this.state.users[id]; this.state.apps=this.state.apps.filter(a=>a.uId!==id); this.save(); this.renderAdminUserList(); },
-        saveNotice: function() { const ei=document.getElementById('edit-n-id').value, txt=document.getElementById('n-input').value.trim(), ip=document.getElementById('n-pin').checked; if(!txt)return; if(ip)this.state.notices.forEach(n=>n.pin=false); const data={id:ei?Number(ei):Date.now(),text:txt,date:new Date().toLocaleDateString(),pin:ip}; if(ei)this.state.notices[this.state.notices.findIndex(n=>n.id==ei)]=data; else this.state.notices.unshift(data); this.save(); this.clearNoticeForm(); this.renderHome(); },
-        renderAdminNoticeList: function() { document.getElementById('admin-notice-table').innerHTML = `<thead><tr><th>날짜</th><th>내용</th><th>관리</th></tr></thead><tbody>` + this.state.notices.map(n => `<tr><td>${n.date}</td><td>${n.text.substring(0,30)}...</td><td><button class="btn btn-sm btn-outline" onclick="app.editNMode(${n.id})">수정</button><button class="btn btn-sm btn-danger" onclick="app.deleteNotice(${n.id})">X</button></td></tr>`).join('') + `</tbody>`; },
-        editNMode: function(id) { const n=this.state.notices.find(i=>i.id==id); document.getElementById('edit-n-id').value=n.id; document.getElementById('n-input').value=n.text; document.getElementById('n-pin').checked=n.pin; },
-        deleteNotice: function(id) { if(confirm("삭제?")){this.state.notices=this.state.notices.filter(n=>n.id!==id); this.save(); this.renderAdminNoticeList(); this.renderHome();} },
-        clearNoticeForm: function() { document.getElementById('edit-n-id').value=''; document.getElementById('n-input').value=''; document.getElementById('n-pin').checked=false; },
-        clearUserForm: function() { ['u-id', 'u-name', 'u-dept'].forEach(i=>document.getElementById(i).value=''); document.getElementById('u-pos').value='미설정'; document.getElementById('u-role').value='user'; document.getElementById('u-edit-title').innerText="👤 임직원 개별 등록/편집"; },
-        loadUserEdit: function(id) { const u=this.state.users[id]; document.getElementById('u-id').value=id; document.getElementById('u-name').value=u.name; document.getElementById('u-dept').value=u.dept; document.getElementById('u-pos').value=u.pos; document.getElementById('u-role').value=u.role; document.getElementById('u-edit-title').innerText="👤 정보 수정 중"; window.scrollTo({top:0, behavior:'smooth'}); },
-        delH: function(tId,uId) { if(confirm("이력 삭제?")) { this.state.apps=this.state.apps.filter(a=>!(a.tId==tId&&a.uId==uId)); this.save(); this.showHistory(uId); this.renderAdminDashboard(); }},
-        renderMyPage: function() { const u = this.state.users[this.state.user]; document.getElementById('my-profile-info').innerHTML=`<b>이름:</b> ${u.name}<br><b>사번:</b> ${this.state.user}<br><b>소속:</b> ${u.dept}<br><b>직급/직책:</b> ${u.pos}`; document.getElementById('my-apps-table').innerHTML=`<thead><tr><th>교육명</th><th>상태</th><th>설문</th></tr></thead><tbody>`+this.state.apps.filter(a=>a.uId===this.state.user).map(a=>{const t=this.state.trainings.find(tr=>tr.id==a.tId); return `<tr><td>${a.tTitle}</td><td><span class="badge status-${a.status}">${a.status}</span></td><td>${(a.status==='이수완료'&&t&&t.survey)?`<button class="btn btn-sm btn-outline" onclick="window.open('${t.survey}')">설문</button>`:'-'}</td></tr>`;}).join('')+`</tbody>`; document.getElementById('notice-archive-list').innerHTML=this.state.notices.map(n=>`<div style="border-bottom:1px solid #eee; padding:15px 0;"><b>[${n.date}]</b> ${n.text}</div>`).join(''); },
-        exportCSV: function(type) { let csv="\uFEFF", f="export.csv"; if(type==='admin-user'){csv+="사번,성함,소속,직급/직책,권한\n"; Object.keys(this.state.users).forEach(id=>{const u=this.state.users[id];csv+=`${id},${u.name},${u.dept},${u.pos},${u.role}\n`;}); f="명부.csv";} else if(type==='my-apps'){csv+="교육명,상태\n"; this.state.apps.filter(a=>a.uId===this.state.user).forEach(a=>csv+=`${a.tTitle},${a.status}\n`); f="나의이력.csv";} const blob=new Blob([csv],{type:'text/csv'}); const link=document.createElement('a'); link.href=URL.createObjectURL(blob); link.download=f; link.click(); },
-        toggleDeptSection: function() { document.getElementById('dept-select-section').classList.toggle('hidden', !document.getElementById('t-mandatory').checked); },
-        selectAllDepts: function() { document.querySelectorAll('.dept-check').forEach(c => c.checked = true); },
-        changePasswordDirect: function() { const pw = document.getElementById('my-new-pw').value; if(pw.length<4) return alert("4자 이상"); this.state.users[this.state.user].pw = pw; this.save(); alert("완료"); },
-        renderMandatoryList: function() { const list=this.state.trainings.filter(t=>t.isMandatory); document.getElementById('mandatory-train-list').innerHTML=list.map(t=>`<div onclick="app.showMandatoryIncomplete(${t.id})" style="padding:15px; border-bottom:1px solid #eee; cursor:pointer; background:#fff;"><b>${t.title}</b></div>`).join(''); },
-        showMandatoryIncomplete: function(tId) { this.state.targetMandatoryId=tId; const t=this.state.trainings.find(i=>i.id == tId); document.getElementById('m-detail-title').innerText=`[${t.title}] 미이수자 명단`; document.getElementById('mandatory-incomplete-box').classList.remove('hidden'); const targetUsers=Object.keys(this.state.users).filter(uid=>t.targetDepts.includes(this.state.users[uid].dept)); const incomplete=targetUsers.map(uid=>{const appInfo=this.state.apps.find(a=>a.tId==tId&&a.uId==uid); return {uid,name:this.state.users[uid].name,dept:this.state.users[uid].dept,status:appInfo?appInfo.status:"미신청"};}).filter(item=>item.status!=="이수완료"); document.getElementById('mandatory-incomplete-table').innerHTML=`<thead><tr><th>성함</th><th>상태</th><th>관리</th></tr></thead><tbody>` + incomplete.map(item => `<tr><td>${item.name}(${item.uid})</td><td>${item.status}</td><td><button class="btn btn-sm btn-outline" onclick="app.forceCompleteMandatory(${tId},'${item.uid}')">이수처리</button></td></tr>`).join('') + `</tbody>`; },
-        forceCompleteMandatory: function(tId,uId){ const t=this.state.trainings.find(i=>i.id==tId); const idx=this.state.apps.findIndex(a => a.tId == tId && a.uId == uId); if(idx > -1) { this.state.apps[idx].status = "이수완료"; } else { this.state.apps.push({ tId, tTitle: t.title, uId, uName: this.state.users[uId].name, status: "이수완료", date: t.sessions[0].date, applyDate: "강제" }); } this.save(); this.showMandatoryIncomplete(tId); },
-        addCategory: function() { const v=document.getElementById('new-cat-input').value.trim(); if(v&&!this.state.cats.includes(v)){this.state.cats.push(v); this.save(); this.renderHome(); document.getElementById('new-cat-input').value='';} },
-        delCat: function(n) { if(confirm("삭제?")){this.state.cats=this.state.cats.filter(c=>c!==n); this.save(); this.renderHome();} },
-        adminCancelApp: function(tId,uId) { if(confirm("취소?")){this.state.apps=this.state.apps.filter(a=>!(a.tId==tId&&a.uId==uId)); this.save(); this.renderTrainAppList();}},
-        completeOnboarding: function() { const name=document.getElementById('init-name').value.trim(), dept=document.getElementById('init-dept').value.trim(), pos=document.getElementById('init-pos').value, pw=document.getElementById('init-pw').value; if(!name||!dept||!pos||pw!==document.getElementById('init-pw-confirm').value)return alert("정보 확인"); Object.assign(this.state.users[this.state.user],{name,dept,pos,pw,isFirst:false}); this.save(); this.initSession(this.state.user); },
-        bulkUpload: function() { const input = document.getElementById('bulk-input').value.trim(); if(!input) return; input.split('\n').forEach(line => { const [id, name, dept] = line.split(',').map(s=>s.trim()); if(id && !this.state.users[id]) this.state.users[id] = { pw:'1234', isFirst:true, role:'user', name, dept, pos:'미설정' }; }); this.save(); alert("등록 완료"); document.getElementById('bulk-input').value=''; this.renderAdminUserList(); },
-        editTMode: function(id) { const t = this.state.trainings.find(i=>i.id==id); app.switchTab('admin', 'a-train'); document.getElementById('edit-t-id').value = t.id; document.getElementById('t-title').value = t.title; document.getElementById('t-cat-sel').value = t.cat; document.getElementById('t-pic').value = t.pic; document.getElementById('t-img').value = t.img; document.getElementById('t-survey').value = t.survey; document.getElementById('t-place').value = t.place; document.getElementById('t-dead').value = t.deadline; document.getElementById('t-quota').value = t.quota; document.getElementById('t-mandatory').checked = t.isMandatory; this.tempSessions = [...t.sessions]; this.renderTempSessions(); this.toggleDeptSection(); window.scrollTo(0,0); },
-        clearTrainForm: function() { document.getElementById('edit-t-id').value = ''; this.tempSessions = []; this.renderTempSessions(); ['t-title','t-pic','t-img','t-survey','t-place','t-dead','t-quota'].forEach(i=>document.getElementById(i).value=''); document.getElementById('t-mandatory').checked = false; this.toggleDeptSection(); },
+
+        manualAddHistory: function() {
+            const tId = document.getElementById('arch-select').value;
+            if(!tId || !this.state.targetUser) return alert("교육을 선택하세요.");
+            const t = this.state.trainings.find(i=>i.id == tId);
+            this.state.apps.push({ tId, tTitle: t.title, uId: this.state.targetUser, uName: this.state.users[this.state.targetUser].name, status: '이수완료', date: '관리자수동' });
+            this.save(); this.showHistory(this.state.targetUser);
+        },
+
+        handleExcelUpload: function() {
+            const fi = document.getElementById('excel-input'), file = fi.files[0];
+            if(!file) return alert("파일을 선택하세요.");
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const workbook = XLSX.read(new Uint8Array(e.target.result), {type: 'array'});
+                const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {header: 1});
+                for(let i = 1; i < rows.length; i++) {
+                    const id = String(rows[i][0]).trim(), name = rows[i][1], dept = rows[i][2];
+                    if(id && !this.state.users[id]) this.state.users[id] = { pw: '1234', role: 'user', name, dept };
+                }
+                this.save(); alert("동기화 완료!");
+            };
+            reader.readAsArrayBuffer(file);
+        },
+
+        saveTraining: function() {
+            const title = document.getElementById('t-title').value;
+            if(!title) return alert("교육명을 입력하세요.");
+            this.state.trainings.unshift({ id: Date.now(), title, quota: document.getElementById('t-quota').value, place: document.getElementById('t-place').value, active: true });
+            this.save(); alert("교육이 등록되었습니다.");
+        },
+
+        renderAdminDashboard: function() {
+            document.getElementById('st-u').innerText = Object.keys(this.state.users).length;
+            document.getElementById('st-t').innerText = this.state.trainings.length;
+            document.getElementById('st-w').innerText = this.state.apps.filter(a=>a.status === '신청중').length;
+            document.getElementById('st-d').innerText = this.state.apps.filter(a=>a.status === '이수완료').length;
+            document.getElementById('admin-master-train-table').innerHTML = this.state.trainings.map(t=>`<tr><td>${t.title}</td><td><button class="btn btn-sm btn-danger" onclick="app.deleteTraining(${t.id})">삭제</button></td></tr>`).join('');
+        },
+
+        deleteTraining: function(id) { if(confirm("삭제하시겠습니까?")) { this.state.trainings = this.state.trainings.filter(t=>t.id!==id); this.save(); }},
+        deleteUser: function(id) { if(confirm("유저를 삭제하시겠습니까?")) { delete this.state.users[id]; this.save(); }},
+        togglePanel: function(p) { document.querySelectorAll('.panel').forEach(el=>el.classList.add('hidden')); document.getElementById(p+'-panel').classList.remove('hidden'); document.getElementById('main-content').classList.add('hidden'); },
+        goHome: function() { document.querySelectorAll('.panel').forEach(p=>p.classList.add('hidden')); document.getElementById('main-content').classList.remove('hidden'); },
+        switchTab: function(p, t) { document.querySelectorAll(`#${p}-panel [id^="tab-"]`).forEach(x=>x.classList.add('hidden')); document.getElementById('tab-'+t).classList.remove('hidden'); }
     };
-    if (!app.state.user) { document.getElementById('auth-overlay').classList.remove('hidden'); } else { app.renderHome(); }
+
+    app.init();
 </script>
 </body>
 </html>
