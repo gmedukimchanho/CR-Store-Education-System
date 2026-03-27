@@ -1,0 +1,2962 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>CR Education</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+/* ═══════════════════════════════════════════
+   DESIGN TOKENS — Claude-inspired warm minimal
+═══════════════════════════════════════════ */
+:root {
+  --bg:       #F9F8F6;
+  --surface:  #FFFFFF;
+  --border:   #E8E6E1;
+  --border2:  #F0EDE8;
+  --text:     #1A1A18;
+  --text2:    #6B6860;
+  --text3:    #9C9A95;
+  --accent:   #D97757;
+  --accent2:  #C4623E;
+  --blue:     #2D6BE4;
+  --blue-bg:  #EEF3FD;
+  --green:    #2D9E6B;
+  --green-bg: #EDFAF3;
+  --red:      #D94F3D;
+  --red-bg:   #FDF0EE;
+  --orange:   #E07B39;
+  --orange-bg:#FEF3EB;
+  --purple:   #7C5CBF;
+  --purple-bg:#F2EEFB;
+  --admin-bg: #16150F;
+  --admin-surface: #1F1E17;
+  --admin-border:  #2E2D25;
+  --admin-text:    #F0EDE8;
+  --admin-text2:   #8A887E;
+  --r-sm: 8px; --r: 12px; --r-lg: 18px; --r-xl: 24px;
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --shadow:    0 4px 16px rgba(0,0,0,.07), 0 1px 4px rgba(0,0,0,.04);
+  --shadow-lg: 0 16px 48px rgba(0,0,0,.12), 0 4px 16px rgba(0,0,0,.06);
+}
+
+/* ── Reset ── */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+html { font-size:16px; }
+body { font-family:'Pretendard',-apple-system,sans-serif; background:var(--bg); color:var(--text); line-height:1.5; letter-spacing:-.015em; -webkit-font-smoothing:antialiased; overflow-x:hidden; }
+button { font-family:inherit; cursor:pointer; }
+input, select, textarea { font-family:inherit; }
+a { text-decoration:none; color:inherit; }
+
+/* ── Loading ── */
+#loading-screen {
+  position:fixed; inset:0; background:var(--bg); z-index:9999;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px;
+}
+.loading-mark { width:48px; height:48px; border-radius:14px; background:var(--accent); display:flex; align-items:center; justify-content:center; }
+.loading-mark svg { width:26px; height:26px; fill:#fff; }
+.loading-dots { display:flex; gap:6px; }
+.loading-dot { width:6px; height:6px; border-radius:50%; background:var(--border); animation:dotpulse 1.2s ease-in-out infinite; }
+.loading-dot:nth-child(2) { animation-delay:.2s; }
+.loading-dot:nth-child(3) { animation-delay:.4s; }
+@keyframes dotpulse { 0%,80%,100%{background:var(--border)} 40%{background:var(--accent)} }
+
+/* ── Toast ── */
+#toast {
+  position:fixed; bottom:28px; left:50%; transform:translateX(-50%) translateY(16px);
+  background:var(--text); color:#fff; padding:10px 20px; border-radius:50px;
+  font-size:13px; font-weight:600; z-index:9997; pointer-events:none;
+  opacity:0; transition:all .25s; white-space:nowrap; box-shadow:var(--shadow-lg);
+}
+#toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* ── Overlay system ── */
+.overlay { position:fixed; inset:0; z-index:5000; display:none; align-items:center; justify-content:center; }
+.overlay.active { display:flex; }
+.overlay-bg { background:rgba(26,26,24,.5); backdrop-filter:blur(8px); }
+
+/* ── Auth ── */
+.auth-wrap { background:var(--surface); border-radius:var(--r-xl); padding:40px 36px; width:90%; max-width:360px; box-shadow:var(--shadow-lg); }
+.auth-logo { width:44px; height:44px; border-radius:12px; background:var(--accent); display:flex; align-items:center; justify-content:center; margin-bottom:20px; }
+.auth-logo svg { width:24px; height:24px; fill:#fff; }
+
+/* ── Onboarding ── */
+.onboard-wrap { background:var(--surface); border-radius:var(--r-xl); padding:36px; width:90%; max-width:420px; box-shadow:var(--shadow-lg); max-height:90vh; overflow-y:auto; }
+
+/* ══════════════════════════════════════════
+   USER LAYOUT
+══════════════════════════════════════════ */
+#user-app { display:none; min-height:100vh; }
+
+/* User Header */
+.u-header {
+  position:sticky; top:0; z-index:200; height:56px;
+  background:rgba(249,248,246,.88); backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border2);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 20px;
+}
+.u-header-logo { font-size:15px; font-weight:900; letter-spacing:-.5px; cursor:pointer; display:flex; align-items:center; gap:8px; }
+.u-header-logo-mark { width:28px; height:28px; border-radius:8px; background:var(--accent); display:flex; align-items:center; justify-content:center; }
+.u-header-logo-mark svg { width:15px; height:15px; fill:#fff; }
+.u-header-right { display:flex; align-items:center; gap:8px; }
+.u-user-chip { font-size:12px; font-weight:700; color:var(--text2); background:var(--border2); padding:4px 12px; border-radius:20px; }
+
+/* User Nav */
+.u-nav { display:flex; gap:0; border-bottom:1px solid var(--border2); padding:0 20px; overflow-x:auto; }
+.u-nav-item { font-size:13px; font-weight:700; color:var(--text3); padding:12px 16px; cursor:pointer; border-bottom:2px solid transparent; transition:.2s; white-space:nowrap; }
+.u-nav-item:hover { color:var(--text2); }
+.u-nav-item.active { color:var(--text); border-bottom-color:var(--accent); }
+
+/* User Content */
+.u-content { max-width:1080px; margin:0 auto; padding:28px 20px; }
+
+/* ── Mandatory Banner ── */
+.mandatory-banner {
+  background:linear-gradient(135deg,var(--red) 0%,#B03A2A 100%);
+  border-radius:var(--r-lg); padding:16px 20px; margin-bottom:24px;
+  display:flex; align-items:center; justify-content:space-between; gap:12px; cursor:pointer;
+  color:#fff;
+}
+.mandatory-banner-left { display:flex; align-items:center; gap:12px; }
+.mandatory-banner-icon { width:36px; height:36px; background:rgba(255,255,255,.2); border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; flex-shrink:0; }
+.mandatory-banner-arrow { font-size:18px; opacity:.8; flex-shrink:0; }
+
+/* ── Story Hero ── */
+.story-hero {
+  background:linear-gradient(135deg,#1A1A18 0%,#2C2B22 100%);
+  border-radius:var(--r-xl); padding:44px 28px; margin-bottom:28px; text-align:center; color:#fff;
+  position:relative; overflow:hidden;
+}
+.story-hero::before {
+  content:''; position:absolute; top:-40px; right:-40px; width:200px; height:200px;
+  border-radius:50%; background:rgba(217,119,87,.15);
+}
+.story-hero::after {
+  content:''; position:absolute; bottom:-60px; left:-20px; width:180px; height:180px;
+  border-radius:50%; background:rgba(45,107,228,.1);
+}
+
+/* ── Shuffle Card ── */
+.shuffle-card {
+  background:var(--surface); border-radius:var(--r-xl); padding:32px 28px;
+  border:1px solid var(--border); box-shadow:var(--shadow); text-align:center;
+  max-width:620px; margin:0 auto 20px;
+}
+.tag-pill { display:inline-block; padding:3px 10px; border-radius:6px; font-size:10px; font-weight:800; margin:0 3px 10px; letter-spacing:.02em; }
+.react-row { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; margin-top:20px; }
+.react-btn {
+  display:inline-flex; align-items:center; gap:5px;
+  padding:7px 14px; border:1.5px solid var(--border); border-radius:50px;
+  background:var(--surface); font-size:12px; font-weight:700; color:var(--text2);
+  transition:.15s; cursor:pointer;
+}
+.react-btn:hover { border-color:var(--accent); color:var(--accent); }
+.react-btn.reacted { background:var(--orange-bg); border-color:var(--orange); color:var(--orange); }
+.admin-comment { background:var(--orange-bg); border-left:3px solid var(--orange); border-radius:0 10px 10px 0; padding:12px 14px; margin-top:16px; text-align:left; }
+
+/* ── Course Card ── */
+.course-card { background:var(--surface); border-radius:var(--r-xl); overflow:hidden; border:1px solid var(--border); transition:box-shadow .2s; }
+.course-card:hover { box-shadow:var(--shadow); }
+.course-thumb { width:100%; height:148px; object-fit:cover; background:var(--border2); display:block; }
+.course-thumb-placeholder { width:100%; height:148px; background:linear-gradient(135deg,var(--border2),var(--border)); display:flex; align-items:center; justify-content:center; font-size:32px; }
+.course-body { padding:18px; }
+.course-status-badge { display:inline-block; padding:4px 10px; border-radius:6px; font-size:10px; font-weight:800; margin-top:12px; }
+
+/* ── Library Grid ── */
+.library-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:18px; }
+
+/* ══════════════════════════════════════════
+   ADMIN LAYOUT
+══════════════════════════════════════════ */
+#admin-app { display:none; min-height:100vh; background:var(--admin-bg); }
+.admin-layout { display:flex; height:100vh; overflow:hidden; }
+
+/* Admin Sidebar */
+.admin-sidebar {
+  width:220px; flex-shrink:0; background:var(--admin-surface);
+  border-right:1px solid var(--admin-border);
+  display:flex; flex-direction:column; overflow:hidden;
+}
+.admin-sidebar-head { padding:20px 16px 12px; border-bottom:1px solid var(--admin-border); }
+.admin-sidebar-logo { display:flex; align-items:center; gap:10px; margin-bottom:4px; }
+.admin-sidebar-logo-mark { width:30px; height:30px; border-radius:8px; background:var(--accent); display:flex; align-items:center; justify-content:center; }
+.admin-sidebar-logo-mark svg { width:16px; height:16px; fill:#fff; }
+.admin-sidebar-logo-text { font-size:14px; font-weight:900; color:var(--admin-text); letter-spacing:-.5px; }
+.admin-sidebar-sub { font-size:11px; color:var(--admin-text2); padding-left:40px; }
+.admin-nav { flex:1; padding:8px; overflow-y:auto; }
+.admin-nav-item {
+  display:flex; align-items:center; gap:10px;
+  padding:9px 12px; border-radius:var(--r); margin-bottom:2px;
+  font-size:13px; font-weight:600; color:var(--admin-text2); cursor:pointer; transition:.15s;
+}
+.admin-nav-item:hover { background:rgba(255,255,255,.06); color:var(--admin-text); }
+.admin-nav-item.active { background:rgba(217,119,87,.15); color:var(--accent); }
+.admin-nav-icon { width:18px; text-align:center; font-size:14px; }
+.admin-nav-footer { padding:12px; border-top:1px solid var(--admin-border); }
+.admin-back-btn { display:flex; align-items:center; gap:8px; padding:8px 12px; border-radius:var(--r); font-size:12px; font-weight:700; color:var(--admin-text2); background:none; border:none; cursor:pointer; transition:.15s; width:100%; }
+.admin-back-btn:hover { background:rgba(255,255,255,.06); color:var(--admin-text); }
+
+/* Admin Main */
+.admin-main { flex:1; overflow:hidden; display:flex; flex-direction:column; background:var(--bg); }
+.admin-topbar { height:56px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; padding:0 24px; background:var(--surface); flex-shrink:0; }
+.admin-topbar-title { font-size:15px; font-weight:800; }
+.admin-content { flex:1; overflow-y:auto; padding:24px; }
+
+/* Admin mobile toggle */
+.admin-menu-toggle { display:none; }
+@media(max-width:768px) {
+  .admin-sidebar { position:fixed; left:-220px; top:0; bottom:0; z-index:300; transition:left .25s; }
+  .admin-sidebar.open { left:0; }
+  .admin-menu-toggle { display:flex; }
+  .admin-main { width:100%; }
+}
+
+/* ══════════════════════════════════════════
+   SHARED COMPONENTS
+══════════════════════════════════════════ */
+
+/* Buttons */
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:9px 18px; border:none; border-radius:var(--r); font-size:13px; font-weight:700; cursor:pointer; transition:.15s; white-space:nowrap; letter-spacing:-.01em; }
+.btn:active { transform:scale(.97); }
+.btn-accent { background:var(--accent); color:#fff; }
+.btn-accent:hover { background:var(--accent2); }
+.btn-dark { background:var(--text); color:#fff; }
+.btn-dark:hover { background:#333; }
+.btn-outline { background:transparent; border:1.5px solid var(--border); color:var(--text2); }
+.btn-outline:hover { border-color:var(--text2); color:var(--text); }
+.btn-ghost { background:transparent; border:none; color:var(--text2); padding:6px 10px; }
+.btn-ghost:hover { color:var(--text); background:var(--border2); border-radius:var(--r-sm); }
+.btn-danger { background:transparent; border:1.5px solid var(--red); color:var(--red); }
+.btn-danger:hover { background:var(--red-bg); }
+.btn-success { background:transparent; border:1.5px solid var(--green); color:var(--green); }
+.btn-success:hover { background:var(--green-bg); }
+.btn-blue { background:var(--blue); color:#fff; }
+.btn-blue:hover { background:#1E57C8; }
+.btn-sm { padding:5px 12px; font-size:11px; }
+.btn-xs { padding:3px 9px; font-size:10px; font-weight:800; }
+.btn-full { width:100%; }
+.btn-icon { width:32px; height:32px; padding:0; border-radius:var(--r-sm); }
+
+/* Inputs */
+.field { margin-bottom:12px; }
+.field-label { display:block; font-size:10px; font-weight:900; color:var(--text3); text-transform:uppercase; letter-spacing:.06em; margin-bottom:5px; padding-left:2px; }
+input[type=text], input[type=password], input[type=email], input[type=number], input[type=date], input[type=time], input[type=url], select, textarea {
+  width:100%; padding:10px 13px; background:var(--bg); border:1.5px solid var(--border);
+  border-radius:var(--r); font-size:13px; color:var(--text); outline:none;
+  transition:.2s; font-family:inherit; line-height:1.5;
+}
+input:focus, select:focus, textarea:focus { border-color:var(--accent); background:var(--surface); box-shadow:0 0 0 3px rgba(217,119,87,.1); }
+select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%239C9A95'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; padding-right:32px; }
+textarea { resize:vertical; min-height:80px; }
+.input-inline { margin:0; }
+
+/* Grid */
+.g2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.g3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+.g4 { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
+.card-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; }
+@media(max-width:640px) { .g2,.g3,.g4 { grid-template-columns:1fr; } }
+
+/* Cards & Containers */
+.card { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-xl); overflow:hidden; }
+.card-pad { padding:20px; }
+.panel { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-xl); }
+.panel-head { padding:14px 18px; border-bottom:1px solid var(--border2); display:flex; align-items:center; justify-content:space-between; }
+.panel-head-title { font-size:13px; font-weight:800; }
+.panel-body { padding:18px; }
+
+/* Section header */
+.sec-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+.sec-title { font-size:18px; font-weight:800; letter-spacing:-.4px; }
+.sec-sub { font-size:12px; color:var(--text3); margin-top:2px; }
+
+/* Table */
+.table-wrap { width:100%; overflow-x:auto; border-radius:var(--r-lg); border:1px solid var(--border); }
+table { width:100%; border-collapse:collapse; min-width:500px; }
+thead th { background:var(--bg); padding:9px 14px; font-size:10px; font-weight:900; color:var(--text3); text-align:left; text-transform:uppercase; letter-spacing:.05em; white-space:nowrap; border-bottom:1px solid var(--border); }
+tbody td { padding:11px 14px; border-bottom:1px solid var(--border2); font-size:13px; vertical-align:middle; }
+tbody tr:last-child td { border-bottom:none; }
+tbody tr:hover { background:var(--bg); }
+.td-actions { display:flex; gap:5px; align-items:center; }
+
+/* Badges */
+.badge { display:inline-flex; align-items:center; padding:2px 8px; border-radius:5px; font-size:10px; font-weight:800; white-space:nowrap; }
+.badge-pending { background:#FEF3EB; color:#C45E1A; }
+.badge-approved { background:var(--green-bg); color:#1A7A4A; }
+.badge-done { background:var(--purple-bg); color:#5C3B9E; }
+.badge-absent { background:var(--red-bg); color:#A33025; }
+.badge-reject { background:var(--red-bg); color:#A33025; }
+.badge-blue { background:var(--blue-bg); color:#1A4DB5; }
+.badge-gray { background:var(--border2); color:var(--text2); }
+.badge-active { background:var(--green-bg); color:#1A7A4A; }
+
+/* Stats cards */
+.stat-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:18px; }
+.stat-num { font-size:28px; font-weight:900; letter-spacing:-1px; margin-bottom:4px; }
+.stat-label { font-size:11px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:.05em; }
+
+/* Search bar */
+.search-bar { position:relative; }
+.search-bar input { padding-left:36px; }
+.search-bar-icon { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text3); font-size:14px; pointer-events:none; }
+
+/* Empty state */
+.empty { text-align:center; padding:48px 24px; color:var(--text3); }
+.empty-icon { font-size:36px; margin-bottom:10px; }
+.empty-text { font-size:13px; font-weight:600; }
+
+/* Rating stars */
+.stars { display:flex; gap:3px; }
+.star { font-size:16px; cursor:pointer; color:var(--border); transition:.1s; }
+.star.on { color:#F5A623; }
+
+/* Detail Slide Panel */
+.detail-panel {
+  position:fixed; right:-440px; top:0; bottom:0; width:440px;
+  background:var(--surface); border-left:1px solid var(--border);
+  z-index:400; transition:right .28s cubic-bezier(.4,0,.2,1);
+  display:flex; flex-direction:column; box-shadow:var(--shadow-lg);
+}
+.detail-panel.open { right:0; }
+.detail-panel-head { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+.detail-panel-body { flex:1; overflow-y:auto; padding:20px; }
+@media(max-width:768px) { .detail-panel { width:100%; right:-100%; } }
+
+/* Notice banner */
+.notice-banner { background:linear-gradient(135deg,var(--blue) 0%,#1A4DB5 100%); border-radius:var(--r-lg); padding:14px 18px; margin-bottom:20px; color:#fff; display:flex; align-items:center; gap:12px; }
+
+/* Progress bar */
+.prog-bar { height:4px; background:var(--border2); border-radius:4px; overflow:hidden; margin-top:8px; }
+.prog-bar-fill { height:100%; background:linear-gradient(90deg,var(--accent),var(--orange)); border-radius:4px; transition:width .4s; }
+
+/* Divider */
+.divider { height:1px; background:var(--border2); margin:16px 0; }
+
+/* Tab pills (inside panels) */
+.tab-pills { display:flex; gap:2px; background:var(--bg); border-radius:var(--r); padding:3px; margin-bottom:16px; }
+.tab-pill { flex:1; text-align:center; padding:7px; font-size:12px; font-weight:700; color:var(--text3); cursor:pointer; border-radius:var(--r-sm); transition:.15s; }
+.tab-pill.active { background:var(--surface); color:var(--text); box-shadow:var(--shadow-sm); }
+
+/* Inline status select */
+.status-sel { padding:4px 8px; font-size:11px; font-weight:700; border-radius:6px; border:1.5px solid var(--border); background:var(--bg); color:var(--text); cursor:pointer; width:auto; appearance:none; padding-right:22px; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%239C9A95'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 7px center; }
+
+/* Chart bar (CSS only) */
+.chart-wrap { display:flex; align-items:flex-end; gap:8px; height:80px; padding-top:8px; }
+.chart-bar-wrap { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; }
+.chart-bar { width:100%; background:linear-gradient(180deg,var(--accent),var(--orange)); border-radius:4px 4px 0 0; transition:height .5s; min-height:2px; }
+.chart-label { font-size:9px; font-weight:700; color:var(--text3); white-space:nowrap; }
+
+/* Expiry warning */
+.expiry-warn { background:var(--orange-bg); border:1px solid rgba(224,123,57,.3); border-radius:var(--r); padding:10px 14px; display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; color:var(--orange); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width:5px; height:5px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:10px; }
+
+/* Utility */
+.hidden { display:none !important; }
+.fw800 { font-weight:800; }
+.fw700 { font-weight:700; }
+.fs11 { font-size:11px; }
+.fs12 { font-size:12px; }
+.fs13 { font-size:13px; }
+.c2 { color:var(--text2); }
+.c3 { color:var(--text3); }
+.ca { color:var(--accent); }
+.mt4 { margin-top:4px; }
+.mt8 { margin-top:8px; }
+.mt12 { margin-top:12px; }
+.mt16 { margin-top:16px; }
+.mt20 { margin-top:20px; }
+.mt24 { margin-top:24px; }
+.mb8 { margin-bottom:8px; }
+.mb12 { margin-bottom:12px; }
+.mb16 { margin-bottom:16px; }
+.mb20 { margin-bottom:20px; }
+.gap8 { gap:8px; }
+.row { display:flex; align-items:center; }
+.row-between { display:flex; align-items:center; justify-content:space-between; }
+.col { display:flex; flex-direction:column; }
+.wrap { flex-wrap:wrap; }
+</style>
+</head>
+<body>
+
+<!-- ── Loading ─────────────────────────────── -->
+<div id="loading-screen">
+  <div class="loading-mark"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg></div>
+  <div class="loading-dots"><div class="loading-dot"></div><div class="loading-dot"></div><div class="loading-dot"></div></div>
+</div>
+
+<div id="toast"></div>
+
+<!-- ── Auth ─────────────────────────────────── -->
+<div id="auth-overlay" class="overlay overlay-bg active">
+  <div class="auth-wrap">
+    <div class="auth-logo"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg></div>
+    <div style="font-size:22px;font-weight:900;letter-spacing:-.8px;margin-bottom:4px;">CR Education</div>
+    <div class="c3 fs12 fw700 mb20">사번과 비밀번호로 로그인하세요</div>
+    <div class="field"><span class="field-label">사번</span><input type="text" id="login-id" placeholder="사번 입력" onkeydown="if(event.key==='Enter')App.login()"></div>
+    <div class="field"><span class="field-label">비밀번호</span><input type="password" id="login-pw" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter')App.login()"></div>
+    <button class="btn btn-accent btn-full mt8" onclick="App.login()">로그인</button>
+  </div>
+</div>
+
+<!-- ── Onboarding ────────────────────────────── -->
+<div id="onboard-overlay" class="overlay overlay-bg">
+  <div class="onboard-wrap">
+    <div class="fs11 fw800 ca mb8" style="text-transform:uppercase;letter-spacing:.06em;">First Login</div>
+    <div style="font-size:20px;font-weight:900;margin-bottom:4px;">프로필 설정</div>
+    <div class="c3 fs12 mb20">최초 로그인입니다. 아래 정보를 입력해주세요.</div>
+    <div class="field"><span class="field-label">국문 성함</span><input type="text" id="ob-name" placeholder="홍길동"></div>
+    <div class="field"><span class="field-label">소속 매장</span><input type="text" id="ob-dept" placeholder="강남점"></div>
+    <div class="field"><span class="field-label">직급</span>
+      <select id="ob-pos"><option>팀원</option><option>파트장</option><option>매니저</option><option>팀장</option></select>
+    </div>
+    <div class="field"><span class="field-label">새 비밀번호 (4자 이상)</span><input type="password" id="ob-pw" placeholder="••••"></div>
+    <button class="btn btn-accent btn-full mt8" onclick="App.completeOnboard()">시작하기</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     USER APP
+══════════════════════════════════════════ -->
+<div id="user-app">
+  <header class="u-header">
+    <div class="u-header-logo" onclick="App.goHome()">
+      <div class="u-header-logo-mark"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg></div>
+      CR Education
+    </div>
+    <div class="u-header-right">
+      <span class="u-user-chip" id="u-user-chip"></span>
+      <button class="btn btn-dark btn-sm" id="admin-enter-btn" onclick="App.enterAdmin()" style="display:none;">관리 센터</button>
+      <button class="btn btn-ghost btn-sm" onclick="App.logout()" style="color:var(--red);">로그아웃</button>
+    </div>
+  </header>
+
+  <!-- Notice Banner (global) -->
+  <div id="u-notice-area" style="max-width:1080px;margin:12px auto 0;padding:0 20px;"></div>
+
+  <nav class="u-nav" id="u-nav">
+    <div class="u-nav-item active" data-sec="stories" onclick="App.showUserSection('stories')">경험 나누기</div>
+    <div class="u-nav-item" data-sec="catalog" onclick="App.showUserSection('catalog')">교육 카탈로그</div>
+    <div class="u-nav-item" data-sec="mypage" onclick="App.showUserSection('mypage')">마이페이지</div>
+  </nav>
+
+  <div class="u-content">
+
+    <!-- ── Stories ── -->
+    <div id="sec-stories">
+      <div class="story-hero" style="position:relative;">
+        <div style="position:relative;z-index:1;">
+          <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;opacity:.5;margin-bottom:10px;">Success Insights Hub</div>
+          <h2 style="font-size:26px;font-weight:900;letter-spacing:-1px;margin-bottom:8px;">동료의 성공 경험에서<br>배우세요</h2>
+          <p style="opacity:.6;font-size:13px;margin-bottom:22px;">현장 노하우를 공유하고 함께 성장하세요.</p>
+          <button class="btn" style="background:rgba(255,255,255,.15);color:#fff;border:1.5px solid rgba(255,255,255,.3);" onclick="App.toggleStoryWrite()">+ 인사이트 기록</button>
+        </div>
+      </div>
+
+      <!-- Write Box -->
+      <div id="story-write-box" style="display:none;max-width:640px;margin:0 auto 24px;background:var(--surface);border:1.5px solid var(--text);border-radius:var(--r-xl);padding:22px;">
+        <div class="fw800 mb12">새 인사이트 작성</div>
+        <div class="g2">
+          <div class="field"><span class="field-label">모델명</span><input type="text" id="s-model" placeholder="ZODIAC-02"></div>
+          <div class="field"><span class="field-label">상황 키워드</span><input type="text" id="s-situ" placeholder="피팅, 렌즈기술"></div>
+        </div>
+        <textarea id="s-content" placeholder="성공 경험의 핵심을 적어주세요." style="height:88px;"></textarea>
+        <div class="row gap8 mt8">
+          <button class="btn btn-dark btn-full" onclick="App.saveStory()">기록 완료</button>
+          <button class="btn btn-outline" onclick="App.toggleStoryWrite()">취소</button>
+        </div>
+      </div>
+
+      <!-- Shuffle -->
+      <div id="shuffle-area" style="max-width:620px;margin:0 auto;"></div>
+      <div style="text-align:center;margin:16px 0 44px;">
+        <button class="btn btn-outline" onclick="App.renderShuffleBtn()">다음 인사이트 →</button>
+      </div>
+
+      <!-- Archive -->
+      <div class="row-between mb16">
+        <div><div class="sec-title">전체 아카이브</div></div>
+        <div class="row gap8">
+          <input type="date" id="csv-from" style="width:136px;margin:0;" title="시작일">
+          <input type="date" id="csv-to" style="width:136px;margin:0;" title="종료일">
+          <button class="btn btn-outline btn-sm" onclick="App.exportCSV()">CSV 추출</button>
+        </div>
+      </div>
+      <div id="library-grid" class="card-grid"></div>
+      <div id="library-empty" class="empty hidden"><div class="empty-icon">✍️</div><div class="empty-text">아직 공유된 인사이트가 없습니다</div></div>
+    </div>
+
+    <!-- ── Catalog ── -->
+    <div id="sec-catalog" class="hidden">
+      <div id="mandatory-banner-area"></div>
+      <div class="row-between mb16">
+        <div class="sec-title">교육 카탈로그</div>
+        <select id="cat-filter" onchange="App.renderCatalog()" style="width:120px;margin:0;font-size:12px;"></select>
+      </div>
+      <div id="catalog-grid" class="card-grid"></div>
+      <div id="catalog-empty" class="empty hidden"><div class="empty-icon">📚</div><div class="empty-text">등록된 교육 과정이 없습니다</div></div>
+    </div>
+
+    <!-- ── Mypage ── -->
+    <div id="sec-mypage" class="hidden">
+      <div class="row-between mb16">
+        <div class="sec-title">마이페이지</div>
+        <button class="btn btn-outline btn-sm" onclick="App.openChangePw()">비밀번호 변경</button>
+      </div>
+      <!-- Summary -->
+      <div id="my-summary" class="g4 mb20"></div>
+      <!-- Records -->
+      <div class="panel">
+        <div class="panel-head"><span class="panel-head-title">교육 이수 현황</span></div>
+        <div class="table-wrap" style="border:none;border-radius:0;">
+          <table><thead><tr><th>과정명</th><th>카테고리</th><th>상태</th><th>일자</th><th>만족도</th></tr></thead>
+          <tbody id="my-apps-tbody"></tbody></table>
+        </div>
+        <div id="my-apps-empty" class="empty hidden"><div class="empty-icon">📋</div><div class="empty-text">이수 기록이 없습니다</div></div>
+      </div>
+    </div>
+
+  </div><!-- /u-content -->
+</div><!-- /user-app -->
+
+<!-- ══════════════════════════════════════════
+     ADMIN APP
+══════════════════════════════════════════ -->
+<div id="admin-app">
+  <div class="admin-layout">
+
+    <!-- Sidebar -->
+    <aside class="admin-sidebar" id="admin-sidebar">
+      <div class="admin-sidebar-head">
+        <div class="admin-sidebar-logo">
+          <div class="admin-sidebar-logo-mark"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg></div>
+          <div class="admin-sidebar-logo-text">CR Admin</div>
+        </div>
+        <div class="admin-sidebar-sub" id="admin-user-label"></div>
+      </div>
+      <nav class="admin-nav">
+        <div class="admin-nav-item active" data-panel="dashboard" onclick="App.showAdminPanel('dashboard')"><span class="admin-nav-icon">📊</span>대시보드</div>
+        <div class="admin-nav-item" data-panel="lms" onclick="App.showAdminPanel('lms')"><span class="admin-nav-icon">📚</span>교육 관리</div>
+        <div class="admin-nav-item" data-panel="satisfaction" onclick="App.showAdminPanel('satisfaction')"><span class="admin-nav-icon">⭐</span>만족도 리포트</div>
+        <div class="admin-nav-item" data-panel="stories-admin" onclick="App.showAdminPanel('stories-admin')"><span class="admin-nav-icon">✍️</span>인사이트 현황</div>
+        <div class="admin-nav-item" data-panel="users" onclick="App.showAdminPanel('users')"><span class="admin-nav-icon">👥</span>사용자 관리</div>
+        <div class="admin-nav-item" data-panel="mandatory-missing" onclick="App.showAdminPanel('mandatory-missing')"><span class="admin-nav-icon">🚨</span>미이수 의무교육</div>
+        <div class="admin-nav-item" data-panel="intern" onclick="App.showAdminPanel('intern')"><span class="admin-nav-icon">🎓</span>인턴 마스터</div>
+        <div class="admin-nav-item" data-panel="settings" onclick="App.showAdminPanel('settings')"><span class="admin-nav-icon">⚙️</span>설정</div>
+      </nav>
+      <div class="admin-nav-footer">
+        <button class="admin-back-btn" onclick="App.exitAdmin()">← 사용자 화면으로</button>
+      </div>
+    </aside>
+
+    <!-- Main -->
+    <div class="admin-main">
+      <div class="admin-topbar">
+        <div class="row gap8">
+          <button class="btn btn-ghost btn-icon admin-menu-toggle" onclick="document.getElementById('admin-sidebar').classList.toggle('open')">☰</button>
+          <span class="admin-topbar-title" id="admin-panel-title">대시보드</span>
+        </div>
+        <div class="row gap8">
+          <span style="font-size:12px;color:var(--text3);" id="admin-top-user"></span>
+        </div>
+      </div>
+
+      <div class="admin-content">
+
+        <!-- ── Dashboard ── -->
+        <div id="panel-dashboard">
+          <div id="dash-notice-area" class="mb16"></div>
+          <div class="g4 mb20" id="dash-stats"></div>
+          <!-- Expiry warnings -->
+          <div id="dash-expiry" class="mb20"></div>
+          <!-- Mandatory missing -->
+          <div class="g2" style="gap:20px;">
+            <div class="panel">
+              <div class="panel-head"><span class="panel-head-title">의무교육 미이수 인원</span></div>
+              <div class="table-wrap" style="border:none;border-radius:0;max-height:280px;overflow-y:auto;">
+                <table><thead><tr><th>이름</th><th>매장</th><th>미완료 교육</th><th>마감</th></tr></thead>
+                <tbody id="dash-mandatory-tbody"></tbody></table>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-head row-between"><span class="panel-head-title">매장별 이수율</span></div>
+              <div class="panel-body"><div id="dash-chart" class="chart-wrap"></div></div>
+            </div>
+          </div>
+          <!-- Recent activity -->
+          <div class="panel mt20">
+            <div class="panel-head"><span class="panel-head-title">최근 신청 활동</span></div>
+            <div class="table-wrap" style="border:none;border-radius:0;">
+              <table><thead><tr><th>신청자</th><th>과정</th><th>일자</th><th>상태</th></tr></thead>
+              <tbody id="dash-recent-tbody"></tbody></table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── LMS ── -->
+        <div id="panel-lms" class="hidden">
+          <div class="g2" style="gap:20px;align-items:start;">
+            <!-- Form -->
+            <div class="panel">
+              <div class="panel-head row-between">
+                <span class="panel-head-title" id="lms-form-title">교육 배포</span>
+                <button class="btn btn-ghost btn-sm" onclick="App.clearTrainForm()">초기화</button>
+              </div>
+              <div class="panel-body">
+                <input type="hidden" id="t-id">
+                <div class="field"><span class="field-label">과정명</span><input type="text" id="t-title" placeholder="교육 과정명"></div>
+                <div class="g2">
+                  <div class="field"><span class="field-label">카테고리</span><select id="t-cat"></select></div>
+                  <div class="field"><span class="field-label">장소 / 링크</span><input type="text" id="t-place" placeholder="강남 세미나실"></div>
+                </div>
+                <div class="field"><span class="field-label">커버 이미지 URL</span><input type="url" id="t-img" placeholder="https://..." onchange="App.previewImg()"></div>
+                <img id="t-img-preview" src="" style="width:100%;height:100px;object-fit:cover;border-radius:var(--r);margin-bottom:12px;display:none;">
+                <div class="field"><span class="field-label">학습 자료 URL (Google Drive 등)</span><input type="url" id="t-file" placeholder="https://drive.google.com/..."></div>
+                <div class="field"><span class="field-label">자료명</span><input type="text" id="t-file-name" placeholder="교육자료.pdf"></div>
+
+                <div class="field"><span class="field-label">담당 강사</span><select id="t-instructor"><option value="">선택 안 함</option></select></div>
+
+                <!-- Session Design -->
+                <div style="background:var(--blue-bg);border-radius:var(--r);padding:14px;margin-bottom:12px;">
+                  <div class="row-between mb8">
+                    <span class="fs11 fw800" style="color:var(--blue);text-transform:uppercase;letter-spacing:.05em;">📅 세션 목록</span>
+                    <button class="btn btn-sm" style="background:var(--blue);color:#fff;padding:4px 10px;" onclick="App.addSessionRow()">+ 세션 추가</button>
+                  </div>
+                  <div id="t-sessions-list"></div>
+                  <div class="fs11 c3 mt8">※ 세션마다 날짜·시작·종료·휴게·장소를 지정합니다. 사용자가 원하는 세션을 선택해 신청합니다.</div>
+                </div>
+
+                <div class="g2">
+                  <div class="field"><span class="field-label">정원</span><input type="number" id="t-quota" placeholder="20" min="1"></div>
+                  <div class="field"><span class="field-label">신청 마감일</span><input type="date" id="t-dead"></div>
+                </div>
+
+                <!-- Mandatory targeting -->
+                <div style="border:1.5px solid var(--border);border-radius:var(--r);padding:12px;margin-bottom:12px;">
+                  <label class="row gap8 fs13 fw700" style="cursor:pointer;margin-bottom:0;">
+                    <input type="checkbox" id="t-mandatory" onchange="App.toggleDeptSec()" style="width:auto;padding:0;margin:0;background:none;border:none;"> 의무교육 타겟팅
+                  </label>
+                  <div id="t-dept-sec" style="display:none;margin-top:12px;">
+                    <div class="fs11 fw700 c3 mb8">대상 매장</div>
+                    <div id="t-dept-list" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+                    <div class="divider"></div>
+                    <div class="fs11 fw700 c3 mb8">대상 직급 (미선택 시 전체)</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                      <label class="row gap8 fs12 fw700"><input type="checkbox" class="pos-check" value="팀원" style="width:auto;padding:0;background:none;border:none;margin:0;"> 팀원</label>
+                      <label class="row gap8 fs12 fw700"><input type="checkbox" class="pos-check" value="파트장" style="width:auto;padding:0;background:none;border:none;margin:0;"> 파트장</label>
+                      <label class="row gap8 fs12 fw700"><input type="checkbox" class="pos-check" value="매니저" style="width:auto;padding:0;background:none;border:none;margin:0;"> 매니저</label>
+                      <label class="row gap8 fs12 fw700"><input type="checkbox" class="pos-check" value="팀장" style="width:auto;padding:0;background:none;border:none;margin:0;"> 팀장</label>
+                    </div>
+                    <div class="divider"></div>
+                    <div class="fs11 fw700 c3 mb8">개별 인원 추가</div>
+                    <div class="row gap8 mb8">
+                      <input type="text" id="t-user-search" placeholder="사번 또는 이름 검색..." style="margin:0;flex:1;font-size:12px;" oninput="App.searchTargetUser()">
+                    </div>
+                    <div id="t-user-search-results" style="max-height:120px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r-sm);display:none;background:#fff;"></div>
+                    <div id="t-target-users" style="display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;"></div>
+                  </div>
+                </div>
+
+                <button class="btn btn-accent btn-full" onclick="App.saveTrain()">교육 배포하기</button>
+              </div>
+            </div>
+
+            <!-- List -->
+            <div>
+              <div class="panel">
+                <div class="panel-head"><span class="panel-head-title">활성 교육 목록</span></div>
+                <div class="table-wrap" style="border:none;border-radius:0;">
+                  <table><thead><tr><th>과정명</th><th>담당자</th><th>카테고리</th><th>세션</th><th>신청</th><th>관리</th></tr></thead>
+                  <tbody id="lms-train-tbody"></tbody></table>
+                </div>
+              </div>
+              <!-- Applicants -->
+              <div id="lms-apps-panel" class="panel mt16" style="display:none;">
+                <div class="panel-head row-between">
+                  <span class="panel-head-title" id="lms-apps-title">신청자 목록</span>
+                  <button class="btn btn-ghost btn-sm" onclick="document.getElementById('lms-apps-panel').style.display='none'">닫기</button>
+                </div>
+                <!-- Session filter tabs -->
+                <div id="lms-session-tabs" style="display:flex;gap:6px;flex-wrap:wrap;padding:12px 16px;border-bottom:1px solid var(--border2);"></div>
+                <div class="table-wrap" style="border:none;border-radius:0;">
+                  <table><thead><tr><th>이름</th><th>매장</th><th>직급</th><th>신청 세션</th><th>신청일</th><th>상태</th><th>만족도</th></tr></thead>
+                  <tbody id="lms-apps-tbody"></tbody></table>
+                </div>
+                <div id="lms-apps-empty" class="empty hidden"><div class="empty-icon">📭</div><div class="empty-text">신청자 없음</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Users ── -->
+        <div id="panel-users" class="hidden">
+          <div class="row-between mb16">
+            <div class="sec-title">사용자 관리</div>
+            <div class="row gap8">
+              <button class="btn btn-outline btn-sm" onclick="App.downloadUserTemplate()">📥 템플릿</button>
+              <button class="btn btn-accent btn-sm" onclick="App.openUserModal()">+ 사용자 추가</button>
+            </div>
+          </div>
+
+          <!-- Excel upload -->
+          <div style="background:var(--blue-bg);border-radius:var(--r-lg);padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <span class="fs12 fw700" style="color:var(--blue);">엑셀 일괄 등록/수정</span>
+            <input type="file" id="user-excel" accept=".xlsx,.xls" style="margin:0;width:auto;background:transparent;border:none;padding:0;font-size:12px;">
+            <button class="btn btn-blue btn-sm" onclick="App.uploadUserExcel()">업로드</button>
+            <span class="fs11 c3">형식: 사번 | 이름 | 매장 | 직급 | 임시비밀번호 / 기존 사번이면 이름·매장·직급만 업데이트</span>
+          </div>
+
+          <!-- Filters -->
+          <div class="row gap8 mb8 wrap">
+            <div class="search-bar" style="flex:1;min-width:180px;"><span class="search-bar-icon">🔍</span><input type="text" id="user-search" placeholder="이름, 사번, 매장 검색..." style="margin:0;" oninput="App.renderUsers()"></div>
+            <select id="user-dept-filter" onchange="App.renderUsers()" style="width:130px;margin:0;font-size:12px;"></select>
+            <select id="user-role-filter" onchange="App.renderUsers()" style="width:110px;margin:0;font-size:12px;">
+              <option value="">전체 권한</option>
+              <option value="admin">관리자</option>
+              <option value="user">일반</option>
+            </select>
+          </div>
+
+          <!-- Bulk action bar -->
+          <div id="user-bulk-bar" style="display:none;background:var(--accent);color:#fff;border-radius:var(--r);padding:10px 16px;margin-bottom:8px;" class="row-between">
+            <span class="fs13 fw700" id="user-bulk-count">0명 선택됨</span>
+            <div class="row gap8">
+              <select id="user-bulk-pos" style="margin:0;width:110px;font-size:12px;background:#fff;color:var(--text);border-radius:var(--r-sm);border:none;padding:5px 8px;">
+                <option value="">직급 변경</option>
+                <option>팀원</option><option>파트장</option><option>매니저</option><option>팀장</option>
+              </select>
+              <select id="user-bulk-role" style="margin:0;width:110px;font-size:12px;background:#fff;color:var(--text);border-radius:var(--r-sm);border:none;padding:5px 8px;">
+                <option value="">권한 변경</option>
+                <option value="user">일반 사용자</option>
+                <option value="admin">관리자</option>
+              </select>
+              <button class="btn btn-sm" style="background:#fff;color:var(--accent);font-weight:800;" onclick="App.applyUserBulk()">적용</button>
+              <button class="btn btn-sm" style="background:rgba(255,255,255,.2);color:#fff;" onclick="App.clearUserSelection()">취소</button>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th style="width:32px;"><input type="checkbox" id="user-check-all" onclick="App.toggleAllUsers(this)" style="width:auto;padding:0;background:none;border:1.5px solid var(--border);margin:0;cursor:pointer;"></th>
+                <th>이름</th><th>사번</th><th>매장</th><th>직급</th><th>권한</th><th>이수</th><th>미이수 의무</th><th>관리</th>
+              </tr></thead>
+              <tbody id="users-tbody"></tbody>
+            </table>
+          </div>
+          <div id="users-empty" class="empty hidden"><div class="empty-icon">👤</div><div class="empty-text">등록된 사용자 없음</div></div>
+        </div>
+
+        <!-- ── Interns ── -->
+        <div id="panel-intern" class="hidden">
+          <div class="row-between mb16">
+            <div class="sec-title">인턴 마스터</div>
+            <div class="row gap8">
+              <button class="btn btn-outline btn-sm" onclick="App.exportInternExcel()">📤 엑셀 출력</button>
+              <button class="btn btn-outline btn-sm" onclick="App.downloadInternTemplate()">📥 템플릿</button>
+              <button class="btn btn-accent btn-sm" onclick="App.openInternModal()">+ 신규 등록</button>
+            </div>
+          </div>
+
+          <!-- Excel bulk upload -->
+          <div style="background:var(--blue-bg);border-radius:var(--r-lg);padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <span class="fs12 fw700" style="color:var(--blue);">엑셀 일괄 등록</span>
+            <input type="file" id="intern-excel" accept=".xlsx,.xls" style="margin:0;width:auto;background:transparent;border:none;padding:0;font-size:12px;">
+            <button class="btn btn-blue btn-sm" onclick="App.uploadInternExcel()">업로드</button>
+          </div>
+
+          <!-- Year stats -->
+          <div class="panel mb16">
+            <div class="panel-head row-between">
+              <span class="panel-head-title">연도별 전환율 통계</span>
+              <div class="row gap8">
+                <select id="intern-year-sel" onchange="App.renderInternStats()" style="width:100px;margin:0;font-size:12px;"></select>
+                <label class="row gap6 fs12 fw700" style="cursor:pointer;">
+                  <input type="checkbox" id="intern-partime-only" onchange="App.renderInternStats()" style="width:auto;padding:0;background:none;border:1.5px solid var(--border);margin:0;"> 파트타이머 출신만
+                </label>
+              </div>
+            </div>
+            <div class="panel-body" id="intern-stats-content">
+              <div class="c3 fs12">연도를 선택하세요.</div>
+            </div>
+          </div>
+
+          <!-- Filters -->
+          <div class="row gap8 mb8 wrap">
+            <div class="search-bar" style="flex:1;min-width:180px;"><span class="search-bar-icon">🔍</span><input type="text" id="intern-search" placeholder="이름, 매장, 학교 검색..." style="margin:0;" oninput="App.renderInterns()"></div>
+            <select id="intern-status-filter" onchange="App.renderInterns()" style="width:130px;margin:0;font-size:12px;">
+              <option value="">전체 상태</option>
+              <option>지원자</option><option>합격</option><option>근무중</option>
+              <option>계약만료</option><option>정규직전환</option><option>퇴사</option>
+            </select>
+          </div>
+
+          <!-- Bulk action bar -->
+          <div id="intern-bulk-bar" style="display:none;background:var(--accent);color:#fff;border-radius:var(--r);padding:10px 16px;margin-bottom:8px;" class="row-between">
+            <span class="fs13 fw700" id="intern-bulk-count">0명 선택됨</span>
+            <div class="row gap8">
+              <select id="intern-bulk-status" style="margin:0;width:130px;font-size:12px;background:#fff;color:var(--text);border-radius:var(--r-sm);border:none;padding:5px 8px;">
+                <option value="">상태 변경</option>
+                <option>지원자</option><option>합격</option><option>근무중</option>
+                <option>계약만료</option><option>정규직전환</option><option>퇴사</option>
+              </select>
+              <button class="btn btn-sm" style="background:#fff;color:var(--accent);font-weight:800;" onclick="App.applyInternBulk()">적용</button>
+              <button class="btn btn-sm" style="background:rgba(255,255,255,.2);color:#fff;" onclick="App.clearInternSelection()">취소</button>
+            </div>
+          </div>
+
+          <!-- Expiry warnings -->
+          <div id="intern-expiry-area" class="mb8"></div>
+
+          <div class="table-wrap">
+            <table>
+              <thead><tr>
+                <th style="width:32px;"><input type="checkbox" id="intern-check-all" onclick="App.toggleAllInterns(this)" style="width:auto;padding:0;background:none;border:1.5px solid var(--border);margin:0;cursor:pointer;"></th>
+                <th>이름</th><th>입사월</th><th>근무지</th><th>파트</th><th>상태</th><th>계약종료</th><th>관리</th>
+              </tr></thead>
+              <tbody id="intern-tbody"></tbody>
+            </table>
+          </div>
+          <div id="intern-empty" class="empty hidden"><div class="empty-icon">🎓</div><div class="empty-text">등록된 인턴 없음</div></div>
+        </div>
+
+        <!-- ── Mandatory Missing ── -->
+        <div id="panel-mandatory-missing" class="hidden">
+          <div class="sec-title mb16">미이수 의무교육 현황</div>
+          <div class="row gap8 mb12 wrap">
+            <div class="search-bar" style="flex:1;min-width:180px;"><span class="search-bar-icon">🔍</span><input type="text" id="mm-search" placeholder="이름, 매장, 교육명 검색..." style="margin:0;" oninput="App.renderMandatoryMissing()"></div>
+            <select id="mm-train-filter" onchange="App.renderMandatoryMissing()" style="width:180px;margin:0;font-size:12px;"><option value="">전체 교육</option></select>
+            <select id="mm-dept-filter" onchange="App.renderMandatoryMissing()" style="width:130px;margin:0;font-size:12px;"><option value="">전체 매장</option></select>
+          </div>
+          <div id="mm-stats" class="g4 mb16"></div>
+          <div class="table-wrap">
+            <table><thead><tr><th>이름</th><th>매장</th><th>직급</th><th>미이수 교육</th><th>마감일</th><th>D-day</th><th>바로가기</th></tr></thead>
+            <tbody id="mm-tbody"></tbody></table>
+          </div>
+          <div id="mm-empty" class="empty hidden"><div class="empty-icon">✅</div><div class="empty-text">미이수 의무교육 없음</div></div>
+        </div>
+
+        <!-- ── Settings ── -->
+        <div id="panel-settings" class="hidden">
+          <!-- Notice -->
+          <div class="panel mb20">
+            <div class="panel-head"><span class="panel-head-title">공지사항 관리</span></div>
+            <div class="panel-body">
+              <div class="field"><span class="field-label">공지 내용</span><input type="text" id="notice-input" placeholder="전체 사용자에게 표시될 공지를 입력하세요"></div>
+              <div class="row gap8">
+                <button class="btn btn-accent" onclick="App.saveNotice()">공지 등록</button>
+                <button class="btn btn-outline" onclick="App.clearNotice()">공지 삭제</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Categories -->
+          <div class="panel mb20">
+            <div class="panel-head"><span class="panel-head-title">카테고리 관리</span></div>
+            <div class="panel-body">
+              <div id="cat-list" class="row gap8 wrap mb12"></div>
+              <div class="row gap8">
+                <input type="text" id="cat-input" placeholder="새 카테고리" style="flex:1;margin:0;">
+                <button class="btn btn-accent" onclick="App.addCat()">추가</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ID Cascade -->
+          <div class="panel mb20">
+            <div class="panel-head"><span class="panel-head-title">사번 변경 (Cascade Sync)</span></div>
+            <div class="panel-body">
+              <div class="g2">
+                <div class="field"><span class="field-label">기존 사번</span><input type="text" id="cas-old"></div>
+                <div class="field"><span class="field-label">새 사번</span><input type="text" id="cas-new"></div>
+              </div>
+              <button class="btn btn-accent" onclick="App.cascadeId()">변경 적용</button>
+            </div>
+          </div>
+
+          <!-- Data reset -->
+          <div class="panel" style="border-color:var(--red);">
+            <div class="panel-head" style="border-color:rgba(217,79,61,.2);"><span class="panel-head-title" style="color:var(--red);">⚠️ 데이터 초기화</span></div>
+            <div class="panel-body">
+              <div class="row gap8 wrap">
+                <button class="btn btn-danger" onclick="App.resetData('trainings')">교육 데이터 초기화</button>
+                <button class="btn btn-danger" onclick="App.resetData('interns')">인턴 데이터 초기화</button>
+                <button class="btn btn-danger" onclick="App.resetData('stories')">스토리 데이터 초기화</button>
+              </div>
+              <div class="fs11 c3 mt8">사용자 데이터는 초기화되지 않습니다.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Satisfaction Report ── -->
+        <div id="panel-satisfaction" class="hidden">
+          <div class="sec-title mb16">만족도 리포트</div>
+          <div class="tab-pills mb16" id="sat-tabs" style="max-width:360px;">
+            <div class="tab-pill active" onclick="App.switchSatTab('all')">전체</div>
+            <div class="tab-pill" onclick="App.switchSatTab('byTrain')">교육별</div>
+            <div class="tab-pill" onclick="App.switchSatTab('byInstructor')">담당자별</div>
+          </div>
+          <div id="sat-content"></div>
+        </div>
+
+        <!-- ── Stories Admin ── -->
+        <div id="panel-stories-admin" class="hidden">
+          <div class="sec-title mb16">인사이트 현황</div>
+          <div class="g2 mb20" style="gap:16px;">
+            <div class="panel">
+              <div class="panel-head"><span class="panel-head-title">작성 순위 TOP 10</span></div>
+              <div class="table-wrap" style="border:none;border-radius:0;">
+                <table><thead><tr><th>순위</th><th>이름</th><th>매장</th><th>작성 수</th></tr></thead>
+                <tbody id="stories-rank-tbody"></tbody></table>
+              </div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><span class="panel-head-title">최근 인사이트</span></div>
+              <div id="stories-admin-recent" style="padding:12px;max-height:400px;overflow-y:auto;"></div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /admin-content -->
+    </div><!-- /admin-main -->
+  </div><!-- /admin-layout -->
+</div><!-- /admin-app -->
+
+<!-- ══════════════════════════════════════════
+     MODALS
+══════════════════════════════════════════ -->
+
+<!-- User Add/Edit Modal -->
+<div id="user-modal" class="overlay overlay-bg">
+  <div style="background:var(--surface);border-radius:var(--r-xl);padding:28px;width:90%;max-width:440px;max-height:88vh;overflow-y:auto;box-shadow:var(--shadow-lg);">
+    <div class="row-between mb16">
+      <div class="fw800" id="user-modal-title">사용자 추가</div>
+      <button class="btn btn-ghost btn-icon" onclick="App.closeUserModal()">✕</button>
+    </div>
+    <input type="hidden" id="um-id-orig">
+    <div class="field"><span class="field-label">사번</span><input type="text" id="um-id" placeholder="사번"></div>
+    <div class="field"><span class="field-label">이름</span><input type="text" id="um-name" placeholder="홍길동"></div>
+    <div class="field"><span class="field-label">소속 매장</span><input type="text" id="um-dept" placeholder="강남점"></div>
+    <div class="field"><span class="field-label">직급</span>
+      <select id="um-pos"><option>팀원</option><option>파트장</option><option>매니저</option><option>팀장</option></select>
+    </div>
+    <div class="field"><span class="field-label">임시 비밀번호</span><input type="text" id="um-pw" placeholder="초기 비밀번호 (기본: 1234)"></div>
+    <div class="field"><span class="field-label">권한</span>
+      <select id="um-role"><option value="user">일반 사용자</option><option value="admin">관리자</option></select>
+    </div>
+    <div class="row gap8 mt8">
+      <button class="btn btn-accent btn-full" onclick="App.saveUser()">저장</button>
+      <button class="btn btn-outline" onclick="App.closeUserModal()">취소</button>
+    </div>
+  </div>
+</div>
+
+<!-- User Detail (Education records) -->
+<div class="detail-panel" id="user-detail-panel">
+  <div class="detail-panel-head">
+    <div>
+      <div class="fw800" id="udp-name"></div>
+      <div class="fs12 c3 mt4" id="udp-info"></div>
+    </div>
+    <div class="row gap8">
+      <button class="btn btn-ghost btn-sm" id="udp-pw-btn" onclick="App.resetUserPw()">비밀번호 초기화</button>
+      <button class="btn btn-ghost btn-icon" onclick="App.closeUserDetail()">✕</button>
+    </div>
+  </div>
+  <div class="detail-panel-body">
+    <div class="tab-pills">
+      <div class="tab-pill active" onclick="App.switchUdpTab('records')">교육 이수</div>
+      <div class="tab-pill" onclick="App.switchUdpTab('info')">기본 정보</div>
+    </div>
+
+    <!-- Records tab -->
+    <div id="udp-records">
+      <div class="row-between mb12">
+        <span class="fs13 fw800">이수 현황</span>
+        <button class="btn btn-accent btn-sm" onclick="App.openAddRecord()">+ 교육 추가</button>
+      </div>
+      <div id="add-record-form" style="display:none;background:var(--bg);border-radius:var(--r);padding:12px;margin-bottom:12px;">
+        <div class="field"><span class="field-label">교육 선택</span>
+          <select id="rec-train-sel"></select>
+        </div>
+        <div class="field"><span class="field-label">상태</span>
+          <select id="rec-status">
+            <option value="신청중">신청중</option>
+            <option value="승인">승인</option>
+            <option value="이수완료">이수완료</option>
+            <option value="미이수">미이수</option>
+          </select>
+        </div>
+        <div class="row gap8 mt8">
+          <button class="btn btn-accent btn-sm" onclick="App.addRecord()">추가</button>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('add-record-form').style.display='none'">취소</button>
+        </div>
+      </div>
+      <div id="udp-records-list"></div>
+    </div>
+
+    <!-- Info tab -->
+    <div id="udp-info-tab" style="display:none;">
+      <div class="field"><span class="field-label">이름</span><input type="text" id="udp-edit-name"></div>
+      <div class="field"><span class="field-label">매장</span><input type="text" id="udp-edit-dept"></div>
+      <div class="field"><span class="field-label">직급</span>
+        <select id="udp-edit-pos"><option>팀원</option><option>파트장</option><option>매니저</option><option>팀장</option></select>
+      </div>
+      <div class="field"><span class="field-label">권한</span>
+        <select id="udp-edit-role"><option value="user">일반 사용자</option><option value="admin">관리자</option></select>
+      </div>
+      <button class="btn btn-accent btn-full mt8" onclick="App.saveUserDetail()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- Intern Modal -->
+<div id="intern-modal" class="overlay overlay-bg">
+  <div style="background:var(--surface);border-radius:var(--r-xl);padding:28px;width:90%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);">
+    <div class="row-between mb16">
+      <div class="fw800" id="intern-modal-title">인턴 등록</div>
+      <button class="btn btn-ghost btn-icon" onclick="App.closeInternModal()">✕</button>
+    </div>
+    <input type="hidden" id="im-id">
+    <div class="g2">
+      <div class="field"><span class="field-label">성함</span><input type="text" id="im-name" placeholder="홍길동"></div>
+      <div class="field"><span class="field-label">입사월 (YY-MM)</span><input type="text" id="im-join" placeholder="25-03"></div>
+    </div>
+    <div class="g2">
+      <div class="field"><span class="field-label">최종월</span><input type="text" id="im-final" placeholder="25-09"></div>
+      <div class="field"><span class="field-label">지역구분</span><input type="text" id="im-region" placeholder="서울"></div>
+    </div>
+    <div class="g2">
+      <div class="field"><span class="field-label">유입플랫폼</span><input type="text" id="im-platform" placeholder="사람인"></div>
+      <div class="field"><span class="field-label">연락처</span><input type="text" id="im-contact" placeholder="010-0000-0000"></div>
+    </div>
+    <div class="g2">
+      <div class="field"><span class="field-label">계약시작일</span><input type="date" id="im-cstart"></div>
+      <div class="field"><span class="field-label">1개월 면담일</span><input type="date" id="im-m1"></div>
+    </div>
+    <div class="g2">
+      <div class="field"><span class="field-label">계약종료일</span><input type="date" id="im-cend"></div>
+      <div class="field"><span class="field-label">연장종료일</span><input type="date" id="im-extend"></div>
+    </div>
+    <div class="g2">
+      <div class="field"><span class="field-label">최종면접일</span><input type="date" id="im-interview"></div>
+      <div class="field"><span class="field-label">정규직전환일</span><input type="date" id="im-convert"></div>
+    </div>
+    <div class="g2">
+      <div class="field"><span class="field-label">퇴사일</span><input type="date" id="im-resign"></div>
+      <div class="field"><span class="field-label">근무지 1차</span><input type="text" id="im-place1" placeholder="강남점"></div>
+    </div>
+    <div class="g2">
+      <div class="field"><span class="field-label">근무지 2차</span><input type="text" id="im-place2" placeholder="홍대점"></div>
+      <div class="field"><span class="field-label">재학여부</span>
+        <select id="im-student"><option>재학</option><option>휴학</option><option>졸업</option><option>해당없음</option></select>
+      </div>
+    </div>
+    <div class="g2">
+      <div class="field"><span class="field-label">학교명</span><input type="text" id="im-school" placeholder="한국대학교"></div>
+      <div class="field"><span class="field-label">현재상태</span>
+        <select id="im-status"><option>지원자</option><option>합격</option><option>근무중</option><option>계약만료</option><option>정규직전환</option><option>퇴사</option></select>
+      </div>
+    </div>
+    <div class="field"><span class="field-label">주소 및 특이사항</span><textarea id="im-memo" style="height:64px;" placeholder="주소, 특이사항 등"></textarea></div>
+    <div class="field" style="margin-bottom:4px;">
+      <label class="row gap8 fs13 fw700" style="cursor:pointer;">
+        <input type="checkbox" id="im-partime" style="width:auto;padding:0;background:none;border:1.5px solid var(--border);margin:0;"> 파트타이머 경력 있음
+      </label>
+    </div>
+    <div class="row gap8 mt8">
+      <button class="btn btn-accent btn-full" onclick="App.saveIntern()">저장</button>
+      <button class="btn btn-outline" onclick="App.closeInternModal()">취소</button>
+    </div>
+    <!-- Convert to user -->
+    <div id="intern-convert-btn-area" class="mt12" style="display:none;">
+      <div class="divider"></div>
+      <div class="fs12 c3 mb8">인턴 임시계정을 생성합니다. (정직원 전환 시 아이디 변경)</div>
+      <button class="btn btn-outline btn-full" onclick="App.convertInternToUser()">→ 임시 사용자 계정 생성</button>
+    </div>
+  </div>
+</div>
+
+<!-- Change PW Modal -->
+<div id="pw-modal" class="overlay overlay-bg">
+  <div style="background:var(--surface);border-radius:var(--r-xl);padding:28px;width:90%;max-width:360px;box-shadow:var(--shadow-lg);">
+    <div class="row-between mb16">
+      <div class="fw800">비밀번호 변경</div>
+      <button class="btn btn-ghost btn-icon" onclick="App.closePwModal()">✕</button>
+    </div>
+    <div class="field"><span class="field-label">현재 비밀번호</span><input type="password" id="pw-current"></div>
+    <div class="field"><span class="field-label">새 비밀번호</span><input type="password" id="pw-new"></div>
+    <div class="field"><span class="field-label">새 비밀번호 확인</span><input type="password" id="pw-confirm"></div>
+    <button class="btn btn-accent btn-full mt8" onclick="App.changePw()">변경</button>
+  </div>
+</div>
+
+<!-- Session Select Modal -->
+<div id="session-modal" class="overlay overlay-bg">
+  <div style="background:var(--surface);border-radius:var(--r-xl);padding:28px;width:90%;max-width:480px;max-height:88vh;overflow-y:auto;box-shadow:var(--shadow-lg);">
+    <div class="row-between mb4">
+      <div class="fw800" id="session-modal-title">세션 선택</div>
+      <button class="btn btn-ghost btn-icon" onclick="App.closeSessionModal()">✕</button>
+    </div>
+    <div class="fs12 c3 mb16" id="session-modal-sub"></div>
+    <div id="session-modal-list"></div>
+    <input type="hidden" id="session-modal-tid">
+  </div>
+</div>
+
+<div id="rating-modal" class="overlay overlay-bg">
+  <div style="background:var(--surface);border-radius:var(--r-xl);padding:28px;width:90%;max-width:380px;box-shadow:var(--shadow-lg);text-align:center;">
+    <div class="fw800 mb4" id="rating-train-name"></div>
+    <div class="fs12 c3 mb16">교육 만족도를 평가해주세요</div>
+    <div class="stars" style="justify-content:center;" id="rating-stars">
+      <span class="star" onclick="App.setStar(1)">★</span>
+      <span class="star" onclick="App.setStar(2)">★</span>
+      <span class="star" onclick="App.setStar(3)">★</span>
+      <span class="star" onclick="App.setStar(4)">★</span>
+      <span class="star" onclick="App.setStar(5)">★</span>
+    </div>
+    <input type="text" id="rating-comment" placeholder="한줄 후기 (선택)" style="margin:16px 0;">
+    <input type="hidden" id="rating-app-idx">
+    <input type="hidden" id="rating-star-val" value="0">
+    <button class="btn btn-accent btn-full" onclick="App.submitRating()">평가 완료</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  FIREBASE CONFIG
+// ═══════════════════════════════════════════════
+const FB_CFG = {
+  apiKey:"AIzaSyD-d8gTqhpFinzg-sACv-HKqPaFOKjhJAI",
+  authDomain:"cr-store-edu-system.firebaseapp.com",
+  databaseURL:"https://cr-store-edu-system-default-rtdb.firebaseio.com/"
+};
+firebase.initializeApp(FB_CFG);
+const db = firebase.database();
+
+// ═══════════════════════════════════════════════
+//  UTILITIES
+// ═══════════════════════════════════════════════
+let _toastT;
+const toast = (msg, dur=2600) => {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(_toastT); _toastT = setTimeout(()=>el.classList.remove('show'), dur);
+};
+const el = id => document.getElementById(id);
+const show = id => el(id).classList.remove('hidden');
+const hide = id => el(id).classList.add('hidden');
+const showEl = (id, disp='block') => el(id).style.display = disp;
+const hideEl = id => el(id).style.display = 'none';
+const showOv = id => el(id).classList.add('active');
+const hideOv = id => el(id).classList.remove('active');
+
+const csvEsc = v => {
+  if (v == null) return '';
+  const s = String(v);
+  return (s.includes(',') || s.includes('"') || s.includes('\n')) ? '"' + s.replace(/"/g,'""') + '"' : s;
+};
+
+const statusClass = s => ({
+  '신청중':'pending','승인':'approved','이수완료':'done',
+  '미이수':'absent','거절':'reject'
+})[s] || 'pending';
+
+const today = () => new Date().toISOString().split('T')[0];
+const daysUntil = dateStr => {
+  if (!dateStr) return null;
+  return Math.ceil((new Date(dateStr) - new Date()) / 86400000);
+};
+
+// ═══════════════════════════════════════════════
+//  APP STATE
+// ═══════════════════════════════════════════════
+const S = {
+  uid: null,           // current user id
+  user: null,          // current user object
+  isAdmin: false,
+  cats: ["BRAND","PRODUCT","CS","TECH","SALES"],
+  notice: '',
+  // cached (loaded on demand)
+  _users: null,
+  _trainings: null,
+  _apps: null,
+  _interns: null,
+  _stories: null,
+  udpUid: null,        // user detail panel target
+  currentInternId: null,
+  shuffleIdx: null,
+  currentRatingAppIdx: null,
+};
+
+// ═══════════════════════════════════════════════
+//  FIREBASE QUERY HELPERS (per-node reads)
+// ═══════════════════════════════════════════════
+const FB = {
+  // Single user
+  getUser: uid => db.ref('/users/'+uid).once('value').then(s=>s.val()),
+
+  // All users (admin only)
+  getUsers: () => db.ref('/users').once('value').then(s=>{
+    const d = s.val()||{}; S._users = d; return d;
+  }),
+
+  // Trainings
+  getTrainings: () => db.ref('/trainings').once('value').then(s=>{
+    const d = s.val()||{}; S._trainings = d; return d;
+  }),
+
+  // Apps for current user — _key included for rating/status updates
+  getMyApps: uid => db.ref('/apps').once('value').then(s=>{
+    const d = s.val()||{};
+    return Object.entries(d).filter(([,v])=>v.uId===uid).map(([k,v])=>({...v,_key:k}));
+  }),
+
+  // Apps for a training (admin) — client-side filter to avoid indexing requirement
+  getAppsForTrain: tId => db.ref('/apps').once('value').then(s=>{
+    const d = s.val()||{};
+    return Object.entries(d).filter(([,v])=>v.tId===tId).map(([k,v])=>({...v,_key:k}));
+  }),
+
+  // All apps (admin dashboard)
+  getAllApps: () => db.ref('/apps').once('value').then(s=>{
+    const d = s.val()||{}; S._apps = d; return d;
+  }),
+
+  // Stories
+  getStories: () => db.ref('/stories').once('value').then(s=>{
+    const d = s.val()||{}; S._stories = d;
+    return Object.values(d).sort((a,b)=>b.id-a.id);
+  }),
+
+  // Interns (admin only)
+  getInterns: () => db.ref('/interns').once('value').then(s=>{
+    const d = s.val()||{}; S._interns = d; return d;
+  }),
+
+  // Meta (cats, notice)
+  getMeta: () => db.ref('/meta').once('value').then(s=>s.val()||{}),
+
+  // Save helpers (node-level, no full overwrite)
+  setUser:     (uid, data) => db.ref('/users/'+uid).update(data),
+  setTraining: (id, data)  => db.ref('/trainings/'+id).set(data),
+  setApp:      (key, data) => db.ref('/apps/'+key).update(data),
+  pushApp:     data        => db.ref('/apps').push(data),
+  delApp:      key         => db.ref('/apps/'+key).remove(),
+  setIntern:   (id, data)  => db.ref('/interns/'+id).set(data),
+  delIntern:   id          => db.ref('/interns/'+id).remove(),
+  setStory:    (id, data)  => db.ref('/stories/'+id).set(data),
+  setMeta:     data        => db.ref('/meta').update(data),
+  delNode:     path        => db.ref(path).remove(),
+};
+
+// ═══════════════════════════════════════════════
+//  APP CONTROLLER
+// ═══════════════════════════════════════════════
+const App = {
+
+  // ── Init ─────────────────────────────────────
+  async init() {
+    const meta = await FB.getMeta();
+    S.cats   = meta.cats   || S.cats;
+    S.notice = meta.notice || '';
+    hideEl('loading-screen');
+    showOv('auth-overlay');
+  },
+
+  // ── Auth ──────────────────────────────────────
+  async login() {
+    const id = el('login-id').value.trim();
+    const pw = el('login-pw').value;
+    if (!id||!pw) return toast('사번과 비밀번호를 입력하세요.');
+
+    // Master admin auto-create
+    if (id==='monster1246' && pw==='1234') {
+      const exists = await FB.getUser(id);
+      if (!exists) {
+        await db.ref('/users/monster1246').set({pw:'1234',role:'admin',name:'마스터',isFirst:false,dept:'HQ',pos:'팀장'});
+      }
+    }
+
+    const user = await FB.getUser(id);
+    if (!user || user.pw !== pw) return toast('사번 또는 비밀번호가 올바르지 않습니다.');
+
+    S.uid = id; S.user = user; S.isAdmin = user.role === 'admin';
+    hideOv('auth-overlay');
+
+    if (user.isFirst) { showOv('onboard-overlay'); return; }
+    this.enterUserApp();
+  },
+
+  async completeOnboard() {
+    const name = el('ob-name').value.trim();
+    const dept = el('ob-dept').value.trim();
+    const pw   = el('ob-pw').value;
+    if (!name) return toast('성함을 입력하세요.');
+    if (!dept) return toast('소속 매장을 입력하세요.');
+    if (pw.length < 4) return toast('비밀번호는 4자 이상이어야 합니다.');
+    await FB.setUser(S.uid, {name,dept,pos:el('ob-pos').value,pw,isFirst:false});
+    S.user = {...S.user,name,dept,pos:el('ob-pos').value,pw,isFirst:false};
+    hideOv('onboard-overlay');
+    this.enterUserApp();
+    toast('프로필 설정 완료!');
+  },
+
+  logout() { location.reload(); },
+
+  // ── User App ──────────────────────────────────
+  async enterUserApp() {
+    showEl('user-app', 'block');
+    el('u-user-chip').textContent = `${S.user.name} (${S.user.pos})`;
+    if (S.isAdmin) showEl('admin-enter-btn', 'flex');
+    this.renderNotice('u-notice-area');
+    this.showUserSection('stories');
+  },
+
+  showUserSection(sec) {
+    ['stories','catalog','mypage'].forEach(s=>{
+      const el2 = el('sec-'+s);
+      el2.classList.toggle('hidden', s!==sec);
+      document.querySelectorAll('.u-nav-item').forEach(n=>{
+        n.classList.toggle('active', n.dataset.sec===sec);
+      });
+    });
+    if (sec==='stories')  this.loadStories();
+    if (sec==='catalog')  this.loadCatalog();
+    if (sec==='mypage')   this.loadMypage();
+    window.scrollTo(0,0);
+  },
+
+  goHome() { this.showUserSection('stories'); },
+
+  // ── Notice ────────────────────────────────────
+  renderNotice(areaId) {
+    const area = el(areaId);
+    if (!area) return;
+    area.innerHTML = S.notice
+      ? `<div class="notice-banner"><span style="font-size:20px;">📢</span><span class="fs13 fw700">${S.notice}</span></div>`
+      : '';
+  },
+
+  // ── Stories ───────────────────────────────────
+  async loadStories() {
+    const stories = await FB.getStories();
+    this.renderShuffle(false, stories);
+    this.renderLibrary(stories);
+  },
+
+  toggleStoryWrite() {
+    const box = el('story-write-box');
+    box.style.display = box.style.display==='none'?'block':'none';
+  },
+
+  async saveStory() {
+    const content = el('s-content').value.trim();
+    if (!content) return toast('내용을 입력하세요.');
+    const id = 'S'+Date.now();
+    await FB.setStory(id, {
+      id, uId:S.uid, uName:S.user.name, dept:S.user.dept,
+      content, model:el('s-model').value.trim()||'GENERAL',
+      situ:el('s-situ').value.trim()||'현장',
+      reactions:{thumbs:0,heart:0,clap:0}, reactedBy:{},
+      adminComment:'', date:today()
+    });
+    ['s-content','s-model','s-situ'].forEach(i=>el(i).value='');
+    el('story-write-box').style.display='none';
+    toast('인사이트가 저장되었습니다.');
+    this.loadStories();
+  },
+
+  renderShuffle(force, stories) {
+    if (!stories || !stories.length) {
+      el('shuffle-area').innerHTML=`<div class="empty"><div class="empty-icon">💬</div><div class="empty-text">아직 공유된 인사이트가 없습니다</div></div>`;
+      return;
+    }
+    let s;
+    if (force || S.shuffleIdx === null) {
+      const candidates = stories.filter(x=>x.id!==S.shuffleIdx);
+      const pool = candidates.length ? candidates : stories;
+      s = pool[Math.floor(Math.random()*pool.length)];
+    } else {
+      s = stories.find(x=>x.id===S.shuffleIdx) || stories[0];
+    }
+    S.shuffleIdx = s.id;
+    const r = s.reactions||{thumbs:0,heart:0,clap:0};
+    const rb = s.reactedBy||{};
+
+    el('shuffle-area').innerHTML = `
+      <div class="shuffle-card">
+        <div class="mb12">
+          <span class="tag-pill" style="background:var(--text);color:#fff;">#${s.model}</span>
+          <span class="tag-pill" style="background:var(--accent);color:#fff;">#${s.situ}</span>
+        </div>
+        <div style="font-size:20px;font-weight:800;line-height:1.55;margin-bottom:14px;">"${s.content}"</div>
+        <p class="fs12 c3">${s.uName} · ${s.dept} · ${s.date}</p>
+        <div class="react-row">
+          <button class="react-btn ${rb[S.uid+'_thumbs']?'reacted':''}" onclick="App.react('${s.id}','thumbs',this)">👍 <span id="rc-thumbs-${s.id}">${r.thumbs||0}</span></button>
+          <button class="react-btn ${rb[S.uid+'_heart']?'reacted':''}" onclick="App.react('${s.id}','heart',this)">❤️ <span id="rc-heart-${s.id}">${r.heart||0}</span></button>
+          <button class="react-btn ${rb[S.uid+'_clap']?'reacted':''}" onclick="App.react('${s.id}','clap',this)">👏 <span id="rc-clap-${s.id}">${r.clap||0}</span></button>
+        </div>
+        ${s.adminComment?`<div class="admin-comment mt12"><div class="fs10 fw800 mb4" style="color:var(--orange);text-transform:uppercase;">📌 교육팀 코멘트</div><div class="fs13">${s.adminComment}</div></div>`:''}
+      </div>`;
+  },
+
+  async react(storyId, type, btn) {
+    const snap = await db.ref('/stories/'+storyId).once('value');
+    const s = snap.val();
+    if (!s) return;
+    const reactions = s.reactions||{thumbs:0,heart:0,clap:0};
+    const reactedBy = s.reactedBy||{};
+    const key = S.uid+'_'+type;
+    let delta;
+    if (reactedBy[key]) { reactions[type]=Math.max(0,(reactions[type]||0)-1); delete reactedBy[key]; delta=-1; btn.classList.remove('reacted'); }
+    else { reactions[type]=(reactions[type]||0)+1; reactedBy[key]=true; delta=1; btn.classList.add('reacted'); }
+    const countEl = document.getElementById('rc-'+type+'-'+storyId);
+    if (countEl) countEl.textContent = reactions[type];
+    await db.ref('/stories/'+storyId).update({reactions,reactedBy});
+  },
+
+  async renderShuffleBtn() {
+    const stories = await FB.getStories();
+    this.renderShuffle(true, stories);
+  },
+
+  renderLibrary(stories) {
+    if (!stories||!stories.length) { show('library-empty'); el('library-grid').innerHTML=''; return; }
+    hide('library-empty');
+    el('library-grid').innerHTML = stories.map(s=>`
+      <div class="library-card">
+        <div class="row gap8 mb8 wrap">
+          <span class="tag-pill" style="background:var(--text);color:#fff;font-size:9px;">#${s.model}</span>
+          <span class="tag-pill" style="background:var(--accent);color:#fff;font-size:9px;">#${s.situ}</span>
+        </div>
+        <p class="fs13" style="line-height:1.6;">${s.content}</p>
+        ${s.adminComment?`<div class="admin-comment mt10"><span class="fs10 fw800" style="color:var(--orange);">📌 교육팀</span><p class="fs12 mt4">${s.adminComment}</p></div>`:''}
+        <p class="fs11 c3 mt10">${s.uName} · ${s.dept} · ${s.date}</p>
+      </div>`).join('');
+  },
+
+  async exportCSV() {
+    const from = el('csv-from').value, to = el('csv-to').value;
+    const stories = await FB.getStories();
+    let list = stories;
+    if (from) list = list.filter(s=>s.date>=from);
+    if (to)   list = list.filter(s=>s.date<=to);
+    if (!list.length) return toast('해당 기간 데이터 없음');
+    const hdr = ['사번','이름','소속','직급','날짜','모델','상황','사례내용'];
+    const rows = list.map(s=>{
+      const u = S._users?.[s.uId]||{};
+      return [s.uId, s.uName, s.dept, u.pos||'', s.date, s.model, s.situ, s.content].map(csvEsc).join(',');
+    });
+    const csv = '\uFEFF'+[hdr.join(','),...rows].join('\r\n');
+    const a = document.createElement('a');
+    a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+    a.download=`CR_Stories_${from||'ALL'}_${to||'ALL'}.csv`;
+    a.click(); toast('CSV 추출 완료');
+  },
+
+  // ── Catalog ───────────────────────────────────
+  async loadCatalog() {
+    const trainings = await FB.getTrainings();
+    S._trainings = trainings;
+
+    // Build cat filter
+    const filterEl = el('cat-filter');
+    const prev = filterEl.value||'ALL';
+    filterEl.innerHTML = `<option value="ALL">전체</option>`+S.cats.map(c=>`<option value="${c}"${prev===c?' selected':''}>${c}</option>`).join('');
+
+    this.renderMandatoryBanner(trainings);
+    this.renderCatalog(trainings);
+  },
+
+  async renderCatalog(trainings) {
+    if (!trainings) trainings = S._trainings || await FB.getTrainings();
+    const filter = el('cat-filter').value||'ALL';
+    const myApps = await FB.getMyApps(S.uid);
+
+    const todayStr = today();
+    const list = Object.values(trainings).filter(t =>
+      !t.deleted && t.active &&
+      (filter==='ALL'||t.cat===filter) &&
+      (!t.deadline || t.deadline >= todayStr)
+    );
+
+    if (!list.length) { show('catalog-empty'); el('catalog-grid').innerHTML=''; return; }
+    hide('catalog-empty');
+    el('catalog-grid').innerHTML = list.map(t=>{
+      const myApp = myApps.find(a=>a.tId===t.id);
+      const isMand = this._isMandatory(t, S.user);
+      const sessions = t.sessions||[];
+      const thumb = t.image
+        ? `<img src="${t.image}" class="course-thumb" onerror="this.style.display='none'">`
+        : `<div class="course-thumb-placeholder">📚</div>`;
+      const ratingBtn = myApp && myApp.status==='이수완료' && !myApp.rating
+        ? `<button class="btn btn-outline btn-sm mt8 btn-full" data-appkey="${myApp._key||''}" data-title="${t.title.replace(/"/g,'&quot;')}" onclick="App.openRating(this.dataset.appkey, this.dataset.title)">만족도 평가</button>`
+        : '';
+      // Sessions preview (up to 3)
+      const sesHtml = sessions.length
+        ? `<div style="margin:8px 0;display:flex;flex-wrap:wrap;gap:4px;">`+
+          sessions.slice(0,3).map(s=>`<span style="background:var(--blue-bg);color:var(--blue);padding:2px 7px;border-radius:5px;font-size:10px;font-weight:700;">${s.date||''} ${s.startTime||''}</span>`).join('')+
+          (sessions.length>3?`<span class="fs10 c3">+${sessions.length-3}개</span>`:'')+
+          `</div>`
+        : '';
+      // Instructor
+      const instrHtml = t.instructorName
+        ? `<div class="fs11 c3 mb4">👤 ${t.instructorName}</div>` : '';
+      const actionHtml = myApp
+        ? `<div class="mt12">
+            <span class="course-status-badge badge badge-${statusClass(myApp.status)}">${myApp.status}</span>
+            ${myApp.sessionId ? `<div class="fs11 c3 mt4">신청 세션: ${this._getSessionLabel(t, myApp.sessionId)}</div>` : ''}
+            ${ratingBtn}
+           </div>`
+        : `<button class="btn btn-accent btn-full mt12" data-tid="${t.id}" onclick="App.openSessionModal(this.dataset.tid)">${sessions.length?'세션 선택 후 신청':'신청하기'}</button>`;
+      return `
+        <div class="course-card" id="course-${t.id}">
+          ${thumb}
+          <div class="course-body">
+            ${isMand?'<span class="badge badge-reject mb8" style="font-size:9px;">필수 수강</span>':''}
+            <div class="fs10 fw800 ca mb4">${t.cat}</div>
+            <div style="font-size:15px;font-weight:800;margin-bottom:4px;">${t.title}</div>
+            ${instrHtml}
+            <div class="fs12 c3 mb4">📍 ${t.place||'-'}</div>
+            ${sesHtml}
+            ${t.deadline?`<div class="fs11 c3">📅 마감 ${t.deadline}</div>`:''}
+            ${t.fileUrl?`<a href="${t.fileUrl}" target="_blank" class="fs11 fw700 mt8" style="display:inline-block;color:var(--green);text-decoration:none;">💾 ${t.fileName||'자료 다운로드'}</a>`:''}
+            ${actionHtml}
+          </div>
+        </div>`;
+    }).join('');
+  },
+
+  _isMandatory(t, user, uid) {
+    if (!t.isMandatory) return false;
+    // Individual user targeting takes precedence if specified
+    if (t.targetUsers?.length && uid) {
+      if (t.targetUsers.includes(uid)) return true;
+    }
+    const deptOk = !t.targetDepts?.length || t.targetDepts.includes(user.dept);
+    const posOk  = !t.targetPos?.length   || t.targetPos.includes(user.pos);
+    return deptOk && posOk;
+  },
+
+  async renderMandatoryBanner(trainings) {
+    const myApps = await FB.getMyApps(S.uid);
+    const todayStr = today();
+    const mandPending = Object.values(trainings).filter(t =>
+      !t.deleted && t.active && this._isMandatory(t, S.user) &&
+      (!t.deadline || t.deadline >= todayStr) &&
+      !myApps.find(a=>a.tId===t.id && (a.status==='이수완료'))
+    );
+    const area = el('mandatory-banner-area');
+    if (!mandPending.length) { area.innerHTML=''; return; }
+    const soonest = mandPending.reduce((a,b)=>(a.deadline<b.deadline?a:b));
+    const days = soonest.deadline ? daysUntil(soonest.deadline) : null;
+    area.innerHTML = `
+      <div class="mandatory-banner" onclick="App.scrollToMandatory('${soonest.id}')">
+        <div class="mandatory-banner-left">
+          <div class="mandatory-banner-icon">🔴</div>
+          <div>
+            <div class="fw800 fs13">미완료 의무교육 ${mandPending.length}개</div>
+            <div class="fs11 mt4" style="opacity:.8;">${soonest.title}${days!==null?' · 마감 D-'+days:''}</div>
+          </div>
+        </div>
+        <div class="mandatory-banner-arrow">→</div>
+      </div>`;
+  },
+
+  scrollToMandatory(tId) {
+    const card = document.getElementById('course-'+tId);
+    if (card) { card.scrollIntoView({behavior:'smooth',block:'center'}); card.style.boxShadow='0 0 0 3px var(--red)'; setTimeout(()=>card.style.boxShadow='',2000); }
+  },
+
+  _getSessionLabel(t, sessionId) {
+    const s = (t.sessions||[]).find(s=>s.id===sessionId);
+    if (!s) return '-';
+    return `${s.date||''} ${s.startTime||''} ${s.place?'· '+s.place:''}`.trim() || '세션';
+  },
+
+  async openSessionModal(tId) {
+    const t = S._trainings?.[tId];
+    if (!t) { toast('교육 정보를 불러올 수 없습니다.'); return; }
+    // Check duplicate
+    const allMyApps = await FB.getMyApps(S.uid);
+    if (allMyApps.find(a=>a.tId===tId)) return toast('이미 신청된 교육입니다.');
+
+    const sessions = t.sessions||[];
+    el('session-modal-title').textContent = t.title;
+    el('session-modal-sub').textContent = t.instructorName ? `담당: ${t.instructorName}` : '';
+    el('session-modal-tid').value = tId;
+
+    if (!sessions.length) {
+      // No sessions — apply directly
+      await this.applyWithSession(tId, null);
+      return;
+    }
+
+    el('session-modal-list').innerHTML = sessions.map(s=>`
+      <div style="border:1.5px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:8px;cursor:pointer;transition:.15s;"
+           onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'"
+           onclick="App.applyWithSession('${tId}','${s.id}')">
+        <div class="fw800 fs13">${s.date||'날짜 미정'}</div>
+        <div class="fs12 c3 mt4">
+          ${s.startTime?`⏰ ${s.startTime}${s.endTime?' ~ '+s.endTime:''}`:''} 
+          ${s.netTime?`· 순수 ${s.netTime}`:''}
+          ${s.place?`<br>📍 ${s.place}`:''}
+        </div>
+        ${s.quota?`<div class="fs11 mt4" style="color:var(--purple);">정원 ${s.quota}명</div>`:''}
+      </div>`).join('');
+    showOv('session-modal');
+  },
+
+  closeSessionModal() { hideOv('session-modal'); },
+
+  async applyWithSession(tId, sessionId) {
+    const t = S._trainings?.[tId]; if (!t) return;
+    await FB.pushApp({
+      tId, tTitle:t.title, tCat:t.cat||'',
+      sessionId: sessionId||'',
+      uId:S.uid, uName:S.user.name, dept:S.user.dept, pos:S.user.pos,
+      status:'신청중', date:today(), addedBy:'user', rating:0, ratingComment:''
+    });
+    hideOv('session-modal');
+    toast('신청 완료!');
+    this.renderCatalog(S._trainings);
+  },
+
+  // legacy direct apply (no sessions) kept for admin addRecord
+  async apply(tId) {
+    await this.openSessionModal(tId);
+  },
+
+  // ── Mypage ────────────────────────────────────
+  async loadMypage() {
+    // Load trainings too so category info is available (even for deleted ones via tCat fallback)
+    const [myApps] = await Promise.all([
+      FB.getMyApps(S.uid),
+      S._trainings ? Promise.resolve() : FB.getTrainings()
+    ]);
+    const arr = myApps.sort((a,b)=>b.date>a.date?1:-1);
+
+    const total  = arr.length;
+    const done   = arr.filter(a=>a.status==='이수완료').length;
+    const pct    = total ? Math.round(done/total*100) : 0;
+    el('my-summary').innerHTML = `
+      <div class="stat-card"><div class="stat-num">${total}</div><div class="stat-label">전체 신청</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--purple);">${done}</div><div class="stat-label">이수완료</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--accent);">${pct}%</div><div class="stat-label">이수율</div><div class="prog-bar mt8"><div class="prog-bar-fill" style="width:${pct}%"></div></div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--red);">${arr.filter(a=>a.status==='미이수').length}</div><div class="stat-label">미이수</div></div>`;
+
+    if (!arr.length) { show('my-apps-empty'); el('my-apps-tbody').innerHTML=''; return; }
+    hide('my-apps-empty');
+    el('my-apps-tbody').innerHTML = arr.map(a=>{
+      const cat = S._trainings?.[a.tId]?.cat || a.tCat || '-';
+      const t = S._trainings?.[a.tId];
+      const isDeleted = t?.deleted;
+      const titleDisplay = isDeleted
+        ? `${a.tTitle} <span class="badge badge-gray fs11">삭제된 교육</span>`
+        : a.tTitle;
+      const sesLabel = a.sessionId && t ? this._getSessionLabel(t, a.sessionId) : '';
+      return `<tr>
+        <td class="fw700">
+          ${titleDisplay}
+          ${sesLabel?`<div class="fs11 c3 mt2">세션: ${sesLabel}</div>`:''}
+        </td>
+        <td><span class="badge badge-blue">${cat}</span></td>
+        <td><span class="badge badge-${statusClass(a.status)}">${a.status}</span></td>
+        <td class="fs12 c3">${a.date}</td>
+        <td>${a.status==='이수완료'
+          ? (a.rating
+              ? '★'.repeat(a.rating)+'☆'.repeat(5-a.rating)
+              : `<button class="btn btn-outline btn-xs" data-key="${a._key||''}" data-title="${(a.tTitle||'').replace(/"/g,'&quot;')}" onclick="App.openRating(this.dataset.key, this.dataset.title)">평가</button>`)
+          : '-'}</td>
+      </tr>`;
+    }).join('');
+  },
+
+  openChangePw() { showOv('pw-modal'); },
+  closePwModal() { hideOv('pw-modal'); ['pw-current','pw-new','pw-confirm'].forEach(i=>el(i).value=''); },
+
+  async changePw() {
+    const cur = el('pw-current').value, nw = el('pw-new').value, cf = el('pw-confirm').value;
+    if (S.user.pw !== cur) return toast('현재 비밀번호가 올바르지 않습니다.');
+    if (nw.length < 4) return toast('새 비밀번호는 4자 이상이어야 합니다.');
+    if (nw !== cf) return toast('비밀번호가 일치하지 않습니다.');
+    await FB.setUser(S.uid, {pw:nw}); S.user.pw = nw;
+    this.closePwModal(); toast('비밀번호가 변경되었습니다.');
+  },
+
+  // ── Rating ────────────────────────────────────
+  openRating(appKey, trainName) {
+    S.currentRatingAppIdx = appKey;
+    el('rating-train-name').textContent = trainName;
+    el('rating-app-idx').value = appKey;
+    el('rating-star-val').value = '0';
+    el('rating-comment').value = '';
+    document.querySelectorAll('.star').forEach(s=>s.classList.remove('on'));
+    showOv('rating-modal');
+  },
+
+  setStar(n) {
+    el('rating-star-val').value = n;
+    document.querySelectorAll('.star').forEach((s,i)=>s.classList.toggle('on', i<n));
+  },
+
+  async submitRating() {
+    const key = el('rating-app-idx').value;
+    const star = parseInt(el('rating-star-val').value)||0;
+    if (!star) return toast('별점을 선택하세요.');
+    if (!key) return toast('앱 키를 찾을 수 없습니다.');
+    await FB.setApp(key, {rating:star, ratingComment:el('rating-comment').value});
+    hideOv('rating-modal'); toast('평가 완료!'); this.loadMypage();
+  },
+
+  // ── Admin Enter/Exit ──────────────────────────
+  async enterAdmin() {
+    hideEl('user-app');
+    showEl('admin-app', 'block');
+    el('admin-user-label').textContent = S.user.name;
+    el('admin-top-user').textContent = `${S.user.name} (${S.user.pos})`;
+    this.showAdminPanel('dashboard');
+  },
+
+  exitAdmin() {
+    hideEl('admin-app');
+    showEl('user-app', 'block');
+  },
+
+  showAdminPanel(panel) {
+    ['dashboard','lms','satisfaction','stories-admin','users','mandatory-missing','intern','settings'].forEach(p=>{
+      const panelEl = document.getElementById('panel-'+p);
+      if (panelEl) panelEl.classList.toggle('hidden', p!==panel);
+    });
+    document.querySelectorAll('.admin-nav-item').forEach(n=>{
+      n.classList.toggle('active', n.dataset.panel===panel);
+    });
+    const titles = {
+      dashboard:'대시보드', lms:'교육 관리', satisfaction:'만족도 리포트',
+      'stories-admin':'인사이트 현황', users:'사용자 관리',
+      'mandatory-missing':'미이수 의무교육', intern:'인턴 마스터', settings:'설정'
+    };
+    el('admin-panel-title').textContent = titles[panel]||'';
+    if (panel==='dashboard')          this.loadDashboard();
+    if (panel==='lms')                this.loadLms();
+    if (panel==='satisfaction')       this.loadSatisfaction();
+    if (panel==='stories-admin')      this.loadStoriesAdmin();
+    if (panel==='users')              this.loadUsers();
+    if (panel==='mandatory-missing')  this.loadMandatoryMissing();
+    if (panel==='intern')             this.loadInterns();
+    if (panel==='settings')           this.loadSettings();
+    document.getElementById('admin-sidebar').classList.remove('open');
+  },
+
+  // ── Dashboard ────────────────────────────────
+  async loadDashboard() {
+    this.renderNotice('dash-notice-area');
+    const [users, trainings, appsObj, interns] = await Promise.all([
+      FB.getUsers(), FB.getTrainings(), FB.getAllApps(), FB.getInterns()
+    ]);
+    const apps = Object.entries(appsObj).map(([k,v])=>({...v,_key:k}));
+    const userList    = Object.values(users).filter(u=>!u.deleted);
+    const trainList   = Object.values(trainings).filter(t=>!t.deleted&&t.active);
+    const internList  = Object.values(interns).filter(i=>!i.deleted);
+    const thisMonth   = today().slice(0,7);
+    const monthApps   = apps.filter(a=>a.date&&a.date.startsWith(thisMonth));
+
+    // Stats
+    const mandMissing = this._getMandMissing(userList, trainList, apps);
+    el('dash-stats').innerHTML = `
+      <div class="stat-card"><div class="stat-num">${userList.length}</div><div class="stat-label">전체 사용자</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--blue);">${monthApps.length}</div><div class="stat-label">이번달 신청</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--red);">${mandMissing.length}</div><div class="stat-label">의무교육 미이수</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--green);">${trainList.length}</div><div class="stat-label">활성 교육</div></div>`;
+
+    // Expiry warnings (interns)
+    const expiring = internList.filter(i=>{
+      const d = daysUntil(i.contractEnd);
+      return d !== null && d >= 0 && d <= 30;
+    }).sort((a,b)=>a.contractEnd>b.contractEnd?1:-1);
+    el('dash-expiry').innerHTML = expiring.map(i=>{
+      const d = daysUntil(i.contractEnd);
+      return `<div class="expiry-warn mb8">⚠️ <b>${i.name}</b> (${i.place1||'-'}) 계약 만료 D-${d} · ${i.contractEnd}</div>`;
+    }).join('');
+
+    // Mandatory missing table
+    el('dash-mandatory-tbody').innerHTML = mandMissing.slice(0,20).map(({user,train})=>`
+      <tr><td class="fw700">${user.name}</td><td class="fs12">${user.dept}</td>
+      <td class="fs12">${train.title}</td><td class="fs12">${train.deadline||'-'}</td></tr>`).join('') || `<tr><td colspan="4" style="padding:20px;text-align:center;color:var(--text3);">미이수 인원 없음</td></tr>`;
+
+    // Chart (dept completion rate)
+    const depts = [...new Set(userList.map(u=>u.dept))].filter(Boolean);
+    const chartData = depts.map(dept=>{
+      const du = userList.filter(u=>u.dept===dept);
+      const done = apps.filter(a=>a.status==='이수완료'&&du.find(u=>u.id===a.uId||Object.keys(users).find(k=>k===a.uId&&users[k].dept===dept)));
+      const rate = du.length ? Math.round(done.length/du.length*100) : 0;
+      return {dept,rate};
+    }).slice(0,8);
+    const maxRate = Math.max(...chartData.map(d=>d.rate), 1);
+    el('dash-chart').innerHTML = chartData.map(d=>`
+      <div class="chart-bar-wrap">
+        <div class="chart-bar" style="height:${Math.max(4,d.rate/maxRate*60)}px;" title="${d.dept}: ${d.rate}%"></div>
+        <div class="chart-label">${d.dept.slice(0,3)}</div>
+      </div>`).join('');
+
+    // Recent
+    el('dash-recent-tbody').innerHTML = apps.slice(-10).reverse().map(a=>`
+      <tr><td class="fw700">${a.uName}</td><td class="fs12">${a.tTitle}</td>
+      <td class="fs12 c3">${a.date}</td><td><span class="badge badge-${statusClass(a.status)}">${a.status}</span></td></tr>`).join('');
+  },
+
+  _getMandMissing(userList, trainList, apps) {
+    const result = [];
+    // userList here is Object.entries(users) pairs: [[uid, userObj], ...]
+    const userPairs = Object.entries(S._users||{}).filter(([,u])=>!u.deleted);
+    trainList.filter(t=>t.isMandatory).forEach(train=>{
+      userPairs.forEach(([uid, user])=>{
+        if (!this._isMandatory(train, user)) return;
+        const done = apps.find(a=>a.tId===train.id && a.uId===uid && a.status==='이수완료');
+        if (!done) result.push({user, uid, train});
+      });
+    });
+    return result;
+  },
+
+  // ── LMS ──────────────────────────────────────
+  async loadLms() {
+    await Promise.all([FB.getTrainings(), FB.getUsers()]);
+    this._buildCatSel('t-cat');
+    this._buildDeptList();
+    this._buildInstructorSel();
+    // Init session list with one empty row if new form
+    if (!el('t-id').value) this._initSessionRows();
+    this.renderLmsTable();
+  },
+
+  _buildInstructorSel() {
+    const admins = Object.entries(S._users||{})
+      .filter(([,u])=>u.role==='admin'&&!u.deleted)
+      .map(([uid,u])=>({uid,name:u.name,dept:u.dept}));
+    el('t-instructor').innerHTML = `<option value="">선택 안 함</option>`+
+      admins.map(a=>`<option value="${a.uid}">${a.name} (${a.dept})</option>`).join('');
+  },
+
+  // ── Session rows ──────────────────────────────
+  _initSessionRows(sessions) {
+    el('t-sessions-list').innerHTML = '';
+    if (sessions && sessions.length) {
+      sessions.forEach(s=>this._appendSessionRow(s));
+    } else {
+      this._appendSessionRow();
+    }
+  },
+
+  _appendSessionRow(s) {
+    const idx = Date.now()+'_'+Math.random().toString(36).slice(2,6);
+    const div = document.createElement('div');
+    div.dataset.sidx = idx;
+    div.style.cssText = 'background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:10px;margin-bottom:8px;';
+    div.innerHTML = `
+      <div class="row-between mb8">
+        <span class="fs11 fw800 c3">세션</span>
+        <button class="btn btn-ghost btn-xs" style="color:var(--red);" onclick="this.closest('[data-sidx]').remove()">✕</button>
+      </div>
+      <div class="g2" style="gap:8px;">
+        <div class="field" style="margin:0;"><span class="field-label">날짜</span><input type="date" class="s-date" value="${s?.date||''}"></div>
+        <div class="field" style="margin:0;"><span class="field-label">장소</span><input type="text" class="s-place" placeholder="강남 세미나실" value="${s?.place||''}"></div>
+      </div>
+      <div class="g3" style="gap:8px;margin-top:8px;">
+        <div class="field" style="margin:0;"><span class="field-label">시작</span><input type="time" class="s-start" value="${s?.startTime||''}" oninput="App._calcSessionNet(this)"></div>
+        <div class="field" style="margin:0;"><span class="field-label">종료</span><input type="time" class="s-end" value="${s?.endTime||''}" oninput="App._calcSessionNet(this)"></div>
+        <div class="field" style="margin:0;"><span class="field-label">휴게(분)</span><input type="number" class="s-break" value="${s?.breakMin||0}" min="0" oninput="App._calcSessionNet(this)"></div>
+      </div>
+      <div class="s-net fs11 fw700 mt6" style="color:var(--blue);">${s?.netTime?'순수교육 '+s.netTime:''}</div>
+      <div class="field mt8" style="margin-bottom:0;"><span class="field-label">정원</span><input type="number" class="s-quota" placeholder="20" min="1" value="${s?.quota||''}"></div>`;
+    el('t-sessions-list').appendChild(div);
+  },
+
+  addSessionRow() { this._appendSessionRow(); },
+
+  _calcSessionNet(input) {
+    const row = input.closest('[data-sidx]');
+    const s = row.querySelector('.s-start').value;
+    const e = row.querySelector('.s-end').value;
+    const b = parseInt(row.querySelector('.s-break').value)||0;
+    const netEl = row.querySelector('.s-net');
+    if (!s||!e) { netEl.textContent=''; return; }
+    const [sh,sm]=s.split(':').map(Number),[eh,em]=e.split(':').map(Number);
+    const net=(eh*60+em)-(sh*60+sm)-b;
+    if (net<=0) { netEl.textContent='⚠️ 시간 확인'; return; }
+    netEl.textContent=`순수교육 ${Math.floor(net/60)}h${net%60?net%60+'m':''}`;
+  },
+
+  _collectSessions() {
+    const rows = document.querySelectorAll('#t-sessions-list [data-sidx]');
+    return Array.from(rows).map((row,i)=>{
+      const s=row.querySelector('.s-start').value, e=row.querySelector('.s-end').value;
+      const b=parseInt(row.querySelector('.s-break').value)||0;
+      let netTime='';
+      if(s&&e){const[sh,sm]=s.split(':').map(Number),[eh,em]=e.split(':').map(Number);const net=(eh*60+em)-(sh*60+sm)-b;if(net>0)netTime=`${Math.floor(net/60)}h${net%60?net%60+'m':''}`;}
+      return {
+        id:'SES'+(i+1), date:row.querySelector('.s-date').value,
+        place:row.querySelector('.s-place').value,
+        startTime:s, endTime:e, breakMin:b, netTime,
+        quota:parseInt(row.querySelector('.s-quota').value)||0
+      };
+    }).filter(s=>s.date||s.startTime);
+  },
+
+  _buildCatSel(selId) {
+    el(selId).innerHTML = S.cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+  },
+
+  _buildDeptList() {
+    const users = S._users||{};
+    const depts = [...new Set(Object.values(users).map(u=>u.dept))].filter(Boolean);
+    el('t-dept-list').innerHTML = depts.map(d=>`
+      <label style="display:inline-flex;align-items:center;gap:5px;padding:5px 10px;background:var(--bg);border-radius:var(--r-sm);font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);">
+        <input type="checkbox" class="dept-chk" value="${d}" style="width:auto;padding:0;background:none;border:none;margin:0;"> ${d}
+      </label>`).join('');
+  },
+
+  calcNet() {
+    const s=el('t-start').value, e=el('t-end').value, b=parseInt(el('t-break').value)||0;
+    if (!s||!e) { el('net-time').textContent=''; return; }
+    const [sh,sm]=s.split(':').map(Number), [eh,em]=e.split(':').map(Number);
+    const net=(eh*60+em)-(sh*60+sm)-b;
+    if (net<=0) { el('net-time').textContent='⚠️ 시간을 확인하세요'; return; }
+    el('net-time').textContent=`순수 교육시간: ${Math.floor(net/60)}시간 ${net%60?net%60+'분':''}`;
+  },
+
+  toggleDeptSec() {
+    el('t-dept-sec').style.display = el('t-mandatory').checked ? 'block' : 'none';
+  },
+
+  previewImg() {
+    const url = el('t-img').value.trim();
+    if (url) { el('t-img-preview').src=url; showEl('t-img-preview'); }
+    else hideEl('t-img-preview');
+  },
+
+  async saveTrain() {
+    const title = el('t-title').value.trim();
+    if (!title) return toast('과정명을 입력하세요.');
+    const editId = el('t-id').value;
+    const id = editId || 'T'+Date.now();
+    const sessions = this._collectSessions();
+    const instructorUid = el('t-instructor').value;
+    const instructorUser = instructorUid ? S._users?.[instructorUid] : null;
+
+    const data = {
+      id, title, cat:el('t-cat').value, place:el('t-place').value,
+      image:el('t-img').value.trim(), fileUrl:el('t-file').value.trim(), fileName:el('t-file-name').value.trim(),
+      sessions, // array of session objects
+      instructorUid, instructorName: instructorUser ? `${instructorUser.name} (${instructorUser.dept})` : '',
+      quota:el('t-quota').value, deadline:el('t-dead').value,
+      isMandatory:el('t-mandatory').checked,
+      targetDepts:Array.from(document.querySelectorAll('.dept-chk:checked')).map(c=>c.value),
+      targetPos:Array.from(document.querySelectorAll('.pos-check:checked')).map(c=>c.value),
+      targetUsers: this._collectTargetUsers(),
+      active:true, deleted:false
+    };
+
+    await FB.setTraining(id, data);
+    await FB.getTrainings();
+    toast(editId?'수정 완료':'교육 배포 완료!');
+    this.clearTrainForm();
+    this.renderLmsTable();
+    const filterEl = el('cat-filter');
+    if (filterEl) {
+      const prev = filterEl.value||'ALL';
+      filterEl.innerHTML = `<option value="ALL">전체</option>`+S.cats.map(c=>`<option value="${c}"${prev===c?' selected':''}>${c}</option>`).join('');
+    }
+  },
+
+  renderLmsTable() {
+    const list = Object.values(S._trainings||{}).filter(t=>!t.deleted);
+    el('lms-train-tbody').innerHTML = list.length===0
+      ? `<tr><td colspan="6" style="padding:20px;text-align:center;color:var(--text3);">등록된 교육 없음</td></tr>`
+      : list.map(t=>`<tr>
+          <td class="fw700">${t.title}</td>
+          <td class="fs12">${t.instructorName||'-'}</td>
+          <td><span class="badge badge-blue">${t.cat}</span></td>
+          <td class="fs12 c3">${t.sessions?.length||0}개</td>
+          <td><button class="btn btn-outline btn-xs" data-tid="${t.id}" onclick="App.loadTrainApps(this.dataset.tid)">신청 보기</button></td>
+          <td class="td-actions">
+            <button class="btn btn-outline btn-xs" data-tid="${t.id}" onclick="App.editTrain(this.dataset.tid)">수정</button>
+            <button class="btn btn-danger btn-xs" data-tid="${t.id}" onclick="App.delTrain(this.dataset.tid)">삭제</button>
+          </td>
+        </tr>`).join('');
+  },
+
+  async loadTrainApps(tId, filterSession) {
+    const t = S._trainings?.[tId];
+    if (!t) return;
+    el('lms-apps-title').textContent = `"${t.title}" 신청자 목록`;
+    showEl('lms-apps-panel');
+
+    // Session tabs
+    const sessions = t.sessions||[];
+    const tabsEl = el('lms-session-tabs');
+    if (sessions.length > 0) {
+      tabsEl.style.display='flex';
+      tabsEl.innerHTML =
+        `<button class="btn btn-sm ${!filterSession?'btn-accent':'btn-outline'}" onclick="App.loadTrainApps('${tId}')">전체</button>`+
+        sessions.map(s=>`<button class="btn btn-sm ${filterSession===s.id?'btn-accent':'btn-outline'}" onclick="App.loadTrainApps('${tId}','${s.id}')">${s.date||'날짜미정'} ${s.startTime||''} ${s.place?'· '+s.place:''}</button>`).join('');
+    } else {
+      tabsEl.style.display='none';
+    }
+
+    const allApps = await this.getAppsForTrainLocal(tId);
+    const apps = filterSession ? allApps.filter(a=>a.sessionId===filterSession) : allApps;
+
+    if (!apps.length) { show('lms-apps-empty'); el('lms-apps-tbody').innerHTML=''; return; }
+    hide('lms-apps-empty');
+
+    const sessionMap = {};
+    sessions.forEach(s=>{ sessionMap[s.id]=s; });
+
+    el('lms-apps-tbody').innerHTML = apps.map(a=>{
+      const ses = sessionMap[a.sessionId];
+      const sesLabel = ses ? `${ses.date||''} ${ses.startTime||''} ${ses.place?'· '+ses.place:''}`.trim()||'세션미지정' : '-';
+      return `<tr>
+        <td class="fw700">${a.uName}</td>
+        <td class="fs12">${a.dept||'-'}</td>
+        <td class="fs12">${a.pos||'-'}</td>
+        <td class="fs12" style="color:var(--blue);">${sesLabel}</td>
+        <td class="fs12 c3">${a.date}</td>
+        <td>
+          <select class="status-sel" data-key="${a._key}" onchange="App.updateAppStatus(this.dataset.key,this.value)">
+            ${['신청중','승인','이수완료','미이수','거절'].map(s=>`<option ${a.status===s?'selected':''}>${s}</option>`).join('')}
+          </select>
+        </td>
+        <td class="fs12">${a.rating?'★'.repeat(a.rating):'-'}</td>
+      </tr>`;
+    }).join('');
+  },
+
+  async getAppsForTrainLocal(tId) {
+    const snap = await db.ref('/apps').once('value');
+    const d = snap.val()||{};
+    return Object.entries(d).filter(([,v])=>v.tId===tId).map(([k,v])=>({...v,_key:k}));
+  },
+
+  async updateAppStatus(key, status) {
+    await FB.setApp(key, {status});
+    toast('상태 변경 완료');
+  },
+
+  editTrain(id) {
+    const t = S._trainings?.[id]; if (!t) return;
+    el('t-id').value=t.id; el('t-title').value=t.title; el('t-place').value=t.place||'';
+    el('t-img').value=t.image||''; el('t-file').value=t.fileUrl||''; el('t-file-name').value=t.fileName||'';
+    el('t-quota').value=t.quota||''; el('t-dead').value=t.deadline||'';
+    el('t-mandatory').checked=t.isMandatory||false;
+    el('t-instructor').value=t.instructorUid||'';
+    this.toggleDeptSec(); this.previewImg();
+    if (t.cat) el('t-cat').value=t.cat;
+    document.querySelectorAll('.dept-chk').forEach(c=>{ c.checked=t.targetDepts?.includes(c.value)||false; });
+    document.querySelectorAll('.pos-check').forEach(c=>{ c.checked=t.targetPos?.includes(c.value)||false; });
+    // Restore target users chips
+    el('t-target-users').innerHTML='';
+    if (t.targetUsers?.length) {
+      t.targetUsers.forEach(uid=>{
+        const u = S._users?.[uid];
+        if (u) this.addTargetUser(uid, u.name, u.dept);
+      });
+    }
+    // Restore sessions
+    this._initSessionRows(t.sessions||[]);
+    el('lms-form-title').textContent='교육 수정';
+    el('admin-content').scrollTo(0,0);
+  },
+
+  async delTrain(id) {
+    const t = S._trainings?.[id];
+    const title = t?.title || id;
+    if (!confirm(`"${title}" 교육을 삭제하시겠습니까?\n\n신청·이수 내역은 사용자 관리 및 마이페이지에 유지됩니다.`)) return;
+    await db.ref('/trainings/'+id).update({deleted:true, active:false});
+    // Re-fetch to sync
+    await FB.getTrainings();
+    toast('삭제 완료');
+    this.renderLmsTable();
+    hideEl('lms-apps-panel');
+  },
+
+  clearTrainForm() {
+    ['t-id','t-title','t-place','t-img','t-file','t-file-name','t-quota','t-dead'].forEach(i=>el(i).value='');
+    el('t-mandatory').checked=false; el('t-instructor').value='';
+    hideEl('t-dept-sec'); hideEl('t-img-preview');
+    el('lms-form-title').textContent='교육 배포';
+    document.querySelectorAll('.dept-chk,.pos-check').forEach(c=>c.checked=false);
+    el('t-target-users').innerHTML='';
+    el('t-user-search').value='';
+    el('t-user-search-results').style.display='none';
+    this._initSessionRows();
+  },
+
+  // ── Users ─────────────────────────────────────
+  async loadUsers() {
+    await FB.getUsers();
+    this._buildUserFilters();
+    this.renderUsers();
+  },
+
+  _buildUserFilters() {
+    const depts = [...new Set(Object.values(S._users||{}).map(u=>u.dept))].filter(Boolean);
+    el('user-dept-filter').innerHTML = `<option value="">전체 매장</option>`+depts.map(d=>`<option value="${d}">${d}</option>`).join('');
+  },
+
+  renderUsers() {
+    const q    = el('user-search').value.toLowerCase();
+    const dept = el('user-dept-filter').value;
+    const role = el('user-role-filter').value;
+    const list = Object.entries(S._users||{}).filter(([uid,u])=>{
+      if (u.deleted) return false;
+      if (dept && u.dept!==dept) return false;
+      if (role && u.role!==role) return false;
+      if (q && !`${u.name}${uid}${u.dept}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+    if (!list.length) { show('users-empty'); el('users-tbody').innerHTML=''; el('user-check-all').checked=false; return; }
+    hide('users-empty');
+    const allApps = Object.values(S._apps||{});
+    const trainList = Object.values(S._trainings||{}).filter(t=>!t.deleted&&t.active&&t.isMandatory);
+    el('users-tbody').innerHTML = list.map(([uid,u])=>{
+      const doneCount = allApps.filter(a=>a.uId===uid&&a.status==='이수완료').length;
+      // Count mandatory missing for this user
+      const mandMissing = trainList.filter(t=>{
+        if (!this._isMandatory(t, u)) return false;
+        return !allApps.find(a=>a.tId===t.id&&a.uId===uid&&a.status==='이수완료');
+      }).length;
+      return `<tr data-uid="${uid}" onclick="App.openUserDetail(this.dataset.uid)" style="cursor:pointer;">
+        <td onclick="event.stopPropagation()">
+          <input type="checkbox" class="user-row-chk" data-uid="${uid}" onclick="App.onUserCheck()" style="width:auto;padding:0;background:none;border:1.5px solid var(--border);margin:0;cursor:pointer;">
+        </td>
+        <td class="fw700">${u.name}</td>
+        <td class="fs12 c3">${uid}</td>
+        <td class="fs12">${u.dept}</td>
+        <td class="fs12">${u.pos}</td>
+        <td><span class="badge ${u.role==='admin'?'badge-approved':'badge-gray'}">${u.role==='admin'?'관리자':'일반'}</span></td>
+        <td class="fs12 fw700" style="color:var(--purple);">${doneCount}건</td>
+        <td>${mandMissing>0?`<span class="badge badge-reject">${mandMissing}건</span>`:'<span class="badge badge-approved">없음</span>'}</td>
+        <td class="td-actions" onclick="event.stopPropagation()">
+          <button class="btn btn-outline btn-xs" data-uid="${uid}" onclick="App.openUserModal(this.dataset.uid)">수정</button>
+          <button class="btn btn-danger btn-xs" data-uid="${uid}" onclick="App.delUser(this.dataset.uid)">삭제</button>
+        </td>
+      </tr>`;
+    }).join('');
+    el('user-check-all').checked = false;
+    el('user-bulk-bar').style.display = 'none';
+  },
+
+  // User bulk selection
+  onUserCheck() {
+    const checked = document.querySelectorAll('.user-row-chk:checked');
+    const bar = el('user-bulk-bar');
+    if (checked.length > 0) {
+      bar.style.display = 'flex';
+      el('user-bulk-count').textContent = `${checked.length}명 선택됨`;
+    } else {
+      bar.style.display = 'none';
+    }
+    el('user-check-all').checked = checked.length === document.querySelectorAll('.user-row-chk').length;
+  },
+
+  toggleAllUsers(cb) {
+    document.querySelectorAll('.user-row-chk').forEach(c=>c.checked=cb.checked);
+    this.onUserCheck();
+  },
+
+  clearUserSelection() {
+    document.querySelectorAll('.user-row-chk').forEach(c=>c.checked=false);
+    el('user-check-all').checked=false;
+    el('user-bulk-bar').style.display='none';
+  },
+
+  async applyUserBulk() {
+    const checked = Array.from(document.querySelectorAll('.user-row-chk:checked')).map(c=>c.dataset.uid);
+    if (!checked.length) return;
+    const pos  = el('user-bulk-pos').value;
+    const role = el('user-bulk-role').value;
+    if (!pos && !role) return toast('변경할 항목을 선택하세요.');
+    for (const uid of checked) {
+      const upd = {};
+      if (pos)  { upd.pos=pos;   if(S._users?.[uid]) S._users[uid].pos=pos; }
+      if (role) { upd.role=role; if(S._users?.[uid]) S._users[uid].role=role; }
+      await FB.setUser(uid, upd);
+    }
+    toast(`${checked.length}명 일괄 업데이트 완료`);
+    this.clearUserSelection();
+    this.renderUsers();
+  },
+
+  openUserModal(uid) {
+    if (uid) {
+      const u = S._users?.[uid]; if (!u) return;
+      el('user-modal-title').textContent='사용자 수정';
+      el('um-id-orig').value=uid; el('um-id').value=uid;
+      el('um-name').value=u.name||''; el('um-dept').value=u.dept||'';
+      el('um-pos').value=u.pos||'팀원'; el('um-pw').value='';
+      el('um-role').value=u.role||'user';
+    } else {
+      el('user-modal-title').textContent='사용자 추가';
+      ['um-id-orig','um-id','um-name','um-dept','um-pw'].forEach(i=>el(i).value='');
+      el('um-pos').value='팀원'; el('um-role').value='user';
+    }
+    showOv('user-modal');
+  },
+
+  closeUserModal() { hideOv('user-modal'); },
+
+  async saveUser() {
+    const newId  = el('um-id').value.trim();
+    const origId = el('um-id-orig').value.trim();
+    const name   = el('um-name').value.trim();
+    const dept   = el('um-dept').value.trim();
+    if (!newId)  return toast('사번을 입력하세요.');
+    if (!name)   return toast('이름을 입력하세요.');
+    if (!dept)   return toast('소속 매장을 입력하세요.');
+    const pw    = el('um-pw').value.trim() || (origId?undefined:'1234');
+    const role  = el('um-role').value;
+    const pos   = el('um-pos').value;
+
+    if (origId && origId !== newId) {
+      // ID changed — cascade
+      await this._doCascade(origId, newId);
+    }
+    const existing = S._users?.[origId||newId]||{};
+    const data = {name,dept,pos,role,isFirst:existing.isFirst===undefined?true:existing.isFirst};
+    if (pw) data.pw = pw;
+    await FB.setUser(newId, data);
+    if (!S._users) S._users={};
+    S._users[newId] = {...existing,...data};
+    if (origId && origId!==newId) delete S._users[origId];
+    toast('저장 완료'); this.closeUserModal(); this.renderUsers();
+  },
+
+  async delUser(uid) {
+    if (!confirm('삭제하시겠습니까?\n이수 기록은 유지됩니다.')) return;
+    await FB.setUser(uid, {deleted:true});
+    if (S._users?.[uid]) S._users[uid].deleted=true;
+    toast('삭제 완료'); this.renderUsers();
+  },
+
+  async uploadUserExcel() {
+    const file = el('user-excel').files[0];
+    if (!file) return toast('파일을 선택하세요.');
+    const buf = await file.arrayBuffer();
+    const wb  = XLSX.read(buf, {type:'array'});
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1});
+    let created=0, updated=0;
+    for (let i=1;i<rows.length;i++) {
+      if (!rows[i][0]) continue;
+      const id = String(rows[i][0]).trim();
+      const existing = S._users?.[id];
+      const role = existing?.role==='admin' ? 'admin' : 'user'; // protect admin
+      if (!existing) {
+        const data = {name:String(rows[i][1]||''),dept:String(rows[i][2]||''),pos:String(rows[i][3]||'팀원'),pw:String(rows[i][4]||'1234'),role,isFirst:true};
+        await FB.setUser(id, data);
+        if (!S._users) S._users={};
+        S._users[id] = data; created++;
+      } else {
+        // Existing user: update name/dept/pos only, preserve everything else
+        const upd = {};
+        if (rows[i][1]) upd.name = String(rows[i][1]).trim();
+        if (rows[i][2]) upd.dept = String(rows[i][2]).trim();
+        if (rows[i][3]) upd.pos  = String(rows[i][3]).trim();
+        if (Object.keys(upd).length) {
+          await FB.setUser(id, upd);
+          Object.assign(S._users[id], upd);
+          updated++;
+        }
+      }
+    }
+    toast(`신규 ${created}명 등록 / 기존 ${updated}명 정보 업데이트`);
+    this.renderUsers();
+    el('user-excel').value='';
+  },
+
+  downloadUserTemplate() {
+    const csv='\uFEFF사번,이름,매장,직급,임시비밀번호\r\n';
+    const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+    a.download='CR_사용자_템플릿.csv'; a.click(); toast('템플릿 다운로드');
+  },
+
+  // User Detail Panel
+  async openUserDetail(uid) {
+    S.udpUid = uid;
+    const u = S._users?.[uid]; if (!u) return;
+    el('udp-name').textContent = u.name;
+    el('udp-info').textContent = `${uid} · ${u.dept} · ${u.pos}`;
+    el('udp-edit-name').value  = u.name;
+    el('udp-edit-dept').value  = u.dept;
+    el('udp-edit-pos').value   = u.pos;
+    el('udp-edit-role').value  = u.role||'user';
+    el('user-detail-panel').classList.add('open');
+    this.switchUdpTab('records');
+    this.loadUserRecords(uid);
+
+    // Build training dropdown
+    const trains = Object.values(S._trainings||{}).filter(t=>!t.deleted&&t.active);
+    el('rec-train-sel').innerHTML = trains.map(t=>`<option value="${t.id}">${t.title}</option>`).join('');
+  },
+
+  closeUserDetail() {
+    el('user-detail-panel').classList.remove('open');
+    hideEl('add-record-form');
+    S.udpUid = null;
+  },
+
+  switchUdpTab(tab) {
+    el('udp-records').style.display  = tab==='records' ? 'block' : 'none';
+    el('udp-info-tab').style.display = tab==='info'    ? 'block' : 'none';
+    const pills = document.querySelectorAll('#user-detail-panel .tab-pill');
+    if (pills[0]) pills[0].classList.toggle('active', tab==='records');
+    if (pills[1]) pills[1].classList.toggle('active', tab==='info');
+  },
+
+  async loadUserRecords(uid) {
+    const snap = await db.ref('/apps').once('value');
+    const d = snap.val()||{};
+    const apps = Object.entries(d).filter(([,v])=>v.uId===uid).map(([k,v])=>({...v,_key:k}))
+      .sort((a,b)=>b.date>a.date?1:-1);
+    el('udp-records-list').innerHTML = apps.length===0
+      ? `<div class="empty"><div class="empty-icon">📋</div><div class="empty-text">이수 기록 없음</div></div>`
+      : apps.map(a=>{
+          const cat = S._trainings?.[a.tId]?.cat || a.tCat || '-';
+          const isDeleted = a.tId && S._trainings?.[a.tId]?.deleted;
+          return `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border2);gap:8px;">
+            <div style="flex:1;min-width:0;">
+              <div class="fw700 fs13" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                ${a.tTitle}
+                ${isDeleted?'<span class="badge badge-gray" style="font-size:9px;">삭제됨</span>':''}
+              </div>
+              <div class="fs11 c3 mt4">
+                <span class="badge badge-blue" style="font-size:9px;">${cat}</span>
+                &nbsp;${a.date} · ${a.addedBy==='admin'?'관리자 추가':'직접 신청'}
+              </div>
+            </div>
+            <div class="row gap8" style="flex-shrink:0;">
+              <select class="status-sel" data-key="${a._key}" data-uid="${uid}" onchange="App.updateAppStatus(this.dataset.key,this.value);App.loadUserRecords(this.dataset.uid)">
+                ${['신청중','승인','이수완료','미이수','거절'].map(s=>`<option ${a.status===s?'selected':''}>${s}</option>`).join('')}
+              </select>
+              <button class="btn btn-danger btn-xs" data-key="${a._key}" data-uid="${uid}" onclick="App.removeRecord(this.dataset.key,this.dataset.uid)">✕</button>
+            </div>
+          </div>`;
+        }).join('');
+  },
+
+  openAddRecord() { showEl('add-record-form'); },
+
+  async addRecord() {
+    const tId = el('rec-train-sel').value;
+    const t   = S._trainings?.[tId]; if (!t) return;
+    const status = el('rec-status').value;
+    const uid = S.udpUid;
+    const user = S._users?.[uid];
+    await FB.pushApp({tId, tTitle:t.title, tCat:t.cat||'', uId:uid, uName:user?.name||'', dept:user?.dept||'', pos:user?.pos||'', status, date:today(), addedBy:'admin', rating:0, ratingComment:''});
+    hideEl('add-record-form'); toast('추가 완료'); this.loadUserRecords(uid);
+  },
+
+  async removeRecord(key, uid) {
+    if (!confirm('이 이수 기록을 삭제하시겠습니까?')) return;
+    await FB.delApp(key); toast('삭제 완료'); this.loadUserRecords(uid);
+  },
+
+  async saveUserDetail() {
+    const uid = S.udpUid; if (!uid) return;
+    await FB.setUser(uid, {name:el('udp-edit-name').value, dept:el('udp-edit-dept').value, pos:el('udp-edit-pos').value, role:el('udp-edit-role').value});
+    if (S._users?.[uid]) Object.assign(S._users[uid],{name:el('udp-edit-name').value,dept:el('udp-edit-dept').value,pos:el('udp-edit-pos').value,role:el('udp-edit-role').value});
+    toast('저장 완료'); this.renderUsers();
+    el('udp-name').textContent=el('udp-edit-name').value;
+  },
+
+  async resetUserPw() {
+    const uid = S.udpUid; if (!uid) return;
+    if (!confirm(`${S._users[uid]?.name}의 비밀번호를 1234로 초기화하시겠습니까?`)) return;
+    await FB.setUser(uid, {pw:'1234',isFirst:true});
+    if (S._users?.[uid]) { S._users[uid].pw='1234'; S._users[uid].isFirst=true; }
+    toast('비밀번호 초기화 완료');
+  },
+
+  // ── Interns ───────────────────────────────────
+  async loadInterns() {
+    await FB.getInterns();
+    this._buildInternYearSel();
+    this.renderInterns();
+    this._renderInternExpiry();
+  },
+
+  _buildInternYearSel() {
+    const years = [...new Set(
+      Object.values(S._interns||{})
+        .filter(i=>!i.deleted&&i.joinMonth)
+        .map(i=>('20'+i.joinMonth.split('-')[0]).slice(0,4))
+    )].sort().reverse();
+    el('intern-year-sel').innerHTML = `<option value="">연도 선택</option>`+years.map(y=>`<option value="${y}">${y}년</option>`).join('');
+  },
+
+  renderInternStats() {
+    const yr = el('intern-year-sel').value;
+    const ptOnly = el('intern-partime-only').checked;
+    if (!yr) { el('intern-stats-content').innerHTML='<div class="c3 fs12">연도를 선택하세요.</div>'; return; }
+
+    let list = Object.values(S._interns||{}).filter(i=>!i.deleted&&i.joinMonth);
+    // Filter by year (joinMonth starts with YY matching yr's last 2 digits)
+    const yy = yr.slice(2);
+    list = list.filter(i=>i.joinMonth.startsWith(yy));
+    if (ptOnly) list = list.filter(i=>i.isPartime);
+
+    const total = list.length;
+    if (!total) { el('intern-stats-content').innerHTML='<div class="c3 fs12">해당 연도 데이터 없음</div>'; return; }
+
+    const converted = list.filter(i=>i.status==='정규직전환').length;
+    const finished  = list.filter(i=>['계약만료','퇴사','정규직전환'].includes(i.status)).length;
+    const pctConvert = finished ? Math.round(converted/finished*100) : 0;
+    const pctFail    = finished ? Math.round((finished-converted)/finished*100) : 0;
+
+    el('intern-stats-content').innerHTML = `
+      <div class="g4 mb12">
+        <div class="stat-card"><div class="stat-num">${total}</div><div class="stat-label">총 인턴${ptOnly?' (파트출신)':''}</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:var(--green);">${converted}</div><div class="stat-label">정규직 전환</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:var(--accent);">${pctConvert}%</div><div class="stat-label">전환율</div></div>
+        <div class="stat-card"><div class="stat-num" style="color:var(--red);">${pctFail}%</div><div class="stat-label">미전환율</div></div>
+      </div>
+      <div class="row gap8" style="align-items:center;">
+        <div style="flex:1;height:12px;background:var(--border2);border-radius:6px;overflow:hidden;">
+          <div style="height:100%;width:${pctConvert}%;background:var(--green);border-radius:6px;transition:width .5s;"></div>
+        </div>
+        <span class="fs11 fw700" style="color:var(--green);width:60px;">전환 ${pctConvert}%</span>
+      </div>
+      ${ptOnly?'':this._getPartimeStat(list)}`;
+  },
+
+  _getPartimeStat(list) {
+    const ptList = list.filter(i=>i.isPartime);
+    if (!ptList.length) return '';
+    const ptConverted = ptList.filter(i=>i.status==='정규직전환').length;
+    const ptFinished  = ptList.filter(i=>['계약만료','퇴사','정규직전환'].includes(i.status)).length;
+    const ptPct = ptFinished ? Math.round(ptConverted/ptFinished*100) : 0;
+    return `<div class="mt12 fs12 fw700" style="color:var(--purple);">파트타이머 출신: ${ptList.length}명 중 ${ptConverted}명 전환 (${ptPct}%)</div>`;
+  },
+
+  _renderInternExpiry() {
+    const list = Object.values(S._interns||{}).filter(i=>!i.deleted);
+    const warn = list.filter(i=>{ const d=daysUntil(i.contractEnd); return d!==null&&d>=0&&d<=30; });
+    el('intern-expiry-area').innerHTML = warn.map(i=>`
+      <div class="expiry-warn mb8">⚠️ <b>${i.name}</b> (${i.place1||'-'}) 계약 만료 D-${daysUntil(i.contractEnd)} · ${i.contractEnd}</div>`).join('');
+  },
+
+  renderInterns() {
+    const q   = el('intern-search').value.toLowerCase();
+    const sts = el('intern-status-filter').value;
+    const list = Object.values(S._interns||{}).filter(i=>{
+      if (i.deleted) return false;
+      if (sts && i.status!==sts) return false;
+      if (q && !`${i.name}${i.place1||''}${i.school||''}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+    if (!list.length) { show('intern-empty'); el('intern-tbody').innerHTML=''; el('intern-check-all').checked=false; return; }
+    hide('intern-empty');
+    const statusColors = {근무중:'approved',퇴사:'reject',계약만료:'absent',정규직전환:'done',지원자:'pending',합격:'blue'};
+    el('intern-tbody').innerHTML = list.map(i=>{
+      const d = daysUntil(i.contractEnd);
+      const isUrgent = d !== null && d >= 0 && d <= 7;
+      return `<tr>
+        <td>
+          <input type="checkbox" class="intern-row-chk" data-id="${i.id}" onclick="App.onInternCheck()" style="width:auto;padding:0;background:none;border:1.5px solid var(--border);margin:0;cursor:pointer;">
+        </td>
+        <td class="fw700">${i.name||''}</td>
+        <td class="fs12 c3">${i.joinMonth||''}</td>
+        <td class="fs12">${i.place1||''}</td>
+        <td class="fs12 c3" style="text-align:center;">${i.isPartime?'✓':''}</td>
+        <td>${i.status?`<span class="badge badge-${statusColors[i.status]||'gray'}">${i.status}</span>`:''}</td>
+        <td class="fs12${isUrgent?' fw700':''}" style="${isUrgent?'color:var(--red);':''}">${i.contractEnd||''}</td>
+        <td class="td-actions">
+          <button class="btn btn-outline btn-xs" data-id="${i.id}" onclick="App.openInternModal(this.dataset.id)">보기</button>
+          <button class="btn btn-danger btn-xs" data-id="${i.id}" onclick="App.delIntern(this.dataset.id)">삭제</button>
+        </td>
+      </tr>`;
+    }).join('');
+    el('intern-check-all').checked = false;
+    el('intern-bulk-bar').style.display = 'none';
+  },
+
+  // Intern bulk selection
+  onInternCheck() {
+    const checked = document.querySelectorAll('.intern-row-chk:checked');
+    const bar = el('intern-bulk-bar');
+    if (checked.length > 0) {
+      bar.style.display = 'flex';
+      el('intern-bulk-count').textContent = `${checked.length}명 선택됨`;
+    } else {
+      bar.style.display = 'none';
+    }
+    el('intern-check-all').checked = checked.length === document.querySelectorAll('.intern-row-chk').length;
+  },
+
+  toggleAllInterns(cb) {
+    document.querySelectorAll('.intern-row-chk').forEach(c=>c.checked=cb.checked);
+    this.onInternCheck();
+  },
+
+  clearInternSelection() {
+    document.querySelectorAll('.intern-row-chk').forEach(c=>c.checked=false);
+    el('intern-check-all').checked=false;
+    el('intern-bulk-bar').style.display='none';
+  },
+
+  async applyInternBulk() {
+    const checked = Array.from(document.querySelectorAll('.intern-row-chk:checked')).map(c=>c.dataset.id);
+    if (!checked.length) return;
+    const status = el('intern-bulk-status').value;
+    if (!status) return toast('변경할 상태를 선택하세요.');
+    for (const id of checked) {
+      await db.ref('/interns/'+id).update({status});
+      if (S._interns?.[id]) S._interns[id].status = status;
+    }
+    toast(`${checked.length}명 상태 변경 완료`);
+    this.clearInternSelection();
+    this.renderInterns();
+  },
+
+  openInternModal(id) {
+    const isEdit = !!id;
+    el('intern-modal-title').textContent = isEdit?'인턴 수정':'인턴 등록';
+    el('im-id').value = id||'';
+    el('intern-convert-btn-area').style.display = isEdit?'block':'none';
+    const fields = ['name','join','final','region','platform','contact','cstart','m1','cend','extend','interview','convert','resign','place1','place2','school','memo'];
+    const keys   = ['name','joinMonth','finalMonth','region','platform','contact','contractStart','month1','contractEnd','extendEnd','interview','convertDate','resignDate','place1','place2','school','memo'];
+    if (isEdit) {
+      const i = S._interns?.[id]||{};
+      fields.forEach((f,j)=>{ if(el('im-'+f)) el('im-'+f).value=i[keys[j]]||''; });
+      el('im-student').value=i.isStudent||'해당없음';
+      el('im-status').value=i.status||'지원자';
+      el('im-partime').checked = !!i.isPartime;
+    } else {
+      fields.forEach(f=>{ if(el('im-'+f)) el('im-'+f).value=''; });
+      el('im-partime').checked = false;
+    }
+    showOv('intern-modal');
+  },
+
+  closeInternModal() { hideOv('intern-modal'); },
+
+  async saveIntern() {
+    const name = el('im-name').value.trim();
+    if (!name) return toast('성함을 입력하세요.');
+    const editId = el('im-id').value;
+    const id = editId || 'I'+Date.now();
+    const data = {
+      id, name, joinMonth:el('im-join').value, finalMonth:el('im-final').value,
+      region:el('im-region').value, platform:el('im-platform').value, contact:el('im-contact').value,
+      contractStart:el('im-cstart').value, month1:el('im-m1').value,
+      contractEnd:el('im-cend').value, extendEnd:el('im-extend').value,
+      interview:el('im-interview').value, convertDate:el('im-convert').value,
+      resignDate:el('im-resign').value, place1:el('im-place1').value, place2:el('im-place2').value,
+      isStudent:el('im-student').value, school:el('im-school').value,
+      status:el('im-status').value, memo:el('im-memo').value,
+      isPartime: el('im-partime').checked,
+      deleted:false
+    };
+    await FB.setIntern(id, data);
+    if (!S._interns) S._interns={};
+    S._interns[id]=data;
+    toast('저장 완료'); this.closeInternModal(); this.renderInterns(); this._renderInternExpiry();
+    // refresh stats if year is selected
+    if (el('intern-year-sel').value) this.renderInternStats();
+  },
+
+  async delIntern(id) {
+    if (!confirm('삭제하시겠습니까?')) return;
+    await db.ref('/interns/'+id).update({deleted:true});
+    if (S._interns?.[id]) S._interns[id].deleted=true;
+    toast('삭제 완료'); this.renderInterns();
+  },
+
+  openInternConvert(id) {
+    el('im-id').value=id;
+    this.openInternModal(id);
+    setTimeout(()=>showEl('intern-convert-btn-area'),50);
+  },
+
+  async convertInternToUser() {
+    const id = el('im-id').value;
+    const i  = S._interns?.[id]; if (!i) return;
+    const uid = prompt('생성할 사번을 입력하세요:');
+    if (!uid) return;
+    if (S._users?.[uid]) return toast('이미 존재하는 사번입니다.');
+    await FB.setUser(uid, {name:i.name,dept:i.place1||'',pos:'팀원',pw:'1234',role:'user',isFirst:true});
+    if (!S._users) S._users={};
+    S._users[uid]={name:i.name,dept:i.place1||'',pos:'팀원',pw:'1234',role:'user',isFirst:true};
+    toast(`사용자 계정 생성 완료 (사번: ${uid})`); this.closeInternModal();
+  },
+
+  async uploadInternExcel() {
+    const file = el('intern-excel').files[0];
+    if (!file) return toast('파일을 선택하세요.');
+    const buf = await file.arrayBuffer();
+    const wb  = XLSX.read(buf,{type:'array'});
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1});
+    const keys=['name','joinMonth','finalMonth','region','platform','contact','contractStart','month1','contractEnd','extendEnd','interview','convertDate','resignDate','place1','place2','isStudent','school','status','memo'];
+    let count=0;
+    for (let i=1;i<rows.length;i++) {
+      if (!rows[i][0]) continue;
+      const id='I'+Date.now()+'_'+i;
+      const rec={id,deleted:false};
+      keys.forEach((k,j)=>rec[k]=rows[i][j]!=null?String(rows[i][j]).trim():'');
+      await FB.setIntern(id,rec);
+      if (!S._interns) S._interns={};
+      S._interns[id]=rec; count++;
+    }
+    toast(`인턴 ${count}명 등록`); this.renderInterns();
+    el('intern-excel').value='';
+  },
+
+  async exportInternExcel() {
+    const list = Object.values(S._interns||{}).filter(i=>!i.deleted);
+    if (!list.length) return toast('데이터 없음');
+    const keys=['name','joinMonth','finalMonth','region','platform','contact','contractStart','month1','contractEnd','extendEnd','interview','convertDate','resignDate','place1','place2','isStudent','school','status','memo'];
+    const labels=['성함','입사월','최종월','지역','유입플랫폼','연락처','계약시작','1개월면담','계약종료','연장종료','최종면접','정규직전환','퇴사일','근무지1','근무지2','재학여부','학교명','현재상태','메모'];
+    const ws = XLSX.utils.aoa_to_sheet([labels,...list.map(i=>keys.map(k=>i[k]||''))]);
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'인턴마스터');
+    XLSX.writeFile(wb,'CR_인턴마스터.xlsx'); toast('엑셀 출력 완료');
+  },
+
+  downloadInternTemplate() {
+    const hdr=['성함','입사월(YY-MM)','최종월','지역구분','유입플랫폼','연락처','계약시작일','1개월면담일','계약종료일','연장종료일','최종면접일','정규직전환일','퇴사일','근무지1차','근무지2차','재학여부','학교명','현재상태','주소및메모'];
+    const csv='\uFEFF'+hdr.join(',')+'\r\n';
+    const a=document.createElement('a'); a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+    a.download='CR_인턴마스터_템플릿.csv'; a.click(); toast('템플릿 다운로드');
+  },
+
+  // ── Mandatory Missing Panel ───────────────────
+  async loadMandatoryMissing() {
+    await Promise.all([
+      S._users    ? Promise.resolve() : FB.getUsers(),
+      S._trainings? Promise.resolve() : FB.getTrainings(),
+      FB.getAllApps()
+    ]);
+    // Populate train filter
+    const mandTrains = Object.values(S._trainings||{}).filter(t=>!t.deleted&&t.active&&t.isMandatory);
+    el('mm-train-filter').innerHTML = `<option value="">전체 교육</option>`+
+      mandTrains.map(t=>`<option value="${t.id}">${t.title}</option>`).join('');
+    const depts = [...new Set(Object.values(S._users||{}).filter(u=>!u.deleted).map(u=>u.dept))].filter(Boolean);
+    el('mm-dept-filter').innerHTML = `<option value="">전체 매장</option>`+depts.map(d=>`<option value="${d}">${d}</option>`).join('');
+    this.renderMandatoryMissing();
+  },
+
+  renderMandatoryMissing() {
+    const q       = el('mm-search').value.toLowerCase();
+    const trainF  = el('mm-train-filter').value;
+    const deptF   = el('mm-dept-filter').value;
+    const apps    = Object.values(S._apps||{});
+    const userList= Object.entries(S._users||{}).filter(([,u])=>!u.deleted);
+    const trainList = Object.values(S._trainings||{}).filter(t=>!t.deleted&&t.active&&t.isMandatory&&(!trainF||t.id===trainF));
+
+    const rows = [];
+    trainList.forEach(train=>{
+      userList.forEach(([uid,user])=>{
+        if (deptF && user.dept!==deptF) return;
+        if (!this._isMandatory(train, user)) return;
+        const done = apps.find(a=>a.tId===train.id&&a.uId===uid&&a.status==='이수완료');
+        if (done) return;
+        if (q && !`${user.name}${user.dept}${train.title}`.toLowerCase().includes(q)) return;
+        rows.push({user, uid, train});
+      });
+    });
+
+    // Stats
+    const totalUsers = new Set(rows.map(r=>r.uid)).size;
+    el('mm-stats').innerHTML = `
+      <div class="stat-card"><div class="stat-num" style="color:var(--red);">${rows.length}</div><div class="stat-label">미이수 건수</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--orange);">${totalUsers}</div><div class="stat-label">해당 인원</div></div>
+      <div class="stat-card"><div class="stat-num">${trainList.length}</div><div class="stat-label">의무교육 수</div></div>
+      <div class="stat-card"><div class="stat-num" style="color:var(--green);">${Object.entries(S._users||{}).filter(([uid,u])=>!u.deleted&&!rows.find(r=>r.uid===uid)).length}</div><div class="stat-label">완료 인원</div></div>`;
+
+    if (!rows.length) { show('mm-empty'); el('mm-tbody').innerHTML=''; return; }
+    hide('mm-empty');
+    el('mm-tbody').innerHTML = rows.map(r=>{
+      const d = r.train.deadline ? daysUntil(r.train.deadline) : null;
+      const dStr = d===null ? '-' : d<0 ? `<span style="color:var(--red);font-weight:800;">D+${Math.abs(d)} 초과</span>` : `<span style="color:${d<=7?'var(--red)':'var(--orange)'};font-weight:800;">D-${d}</span>`;
+      return `<tr>
+        <td class="fw700">${r.user.name}</td>
+        <td class="fs12">${r.user.dept}</td>
+        <td class="fs12">${r.user.pos}</td>
+        <td class="fw700 fs12">${r.train.title}</td>
+        <td class="fs12 c3">${r.train.deadline||'-'}</td>
+        <td>${dStr}</td>
+        <td><button class="btn btn-outline btn-xs" data-uid="${r.uid}" onclick="App.openUserDetail(this.dataset.uid)">상세 보기</button></td>
+      </tr>`;
+    }).join('');
+  },
+
+  // ── Target user individual search ────────────
+  searchTargetUser() {
+    const q = el('t-user-search').value.trim().toLowerCase();
+    const res = el('t-user-search-results');
+    if (!q) { res.style.display='none'; return; }
+    const matches = Object.entries(S._users||{})
+      .filter(([uid,u])=>!u.deleted&&`${u.name}${uid}`.toLowerCase().includes(q))
+      .slice(0,8);
+    if (!matches.length) { res.style.display='none'; return; }
+    res.style.display='block';
+    res.innerHTML = matches.map(([uid,u])=>`
+      <div style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border2);"
+           onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='#fff'"
+           onclick="App.addTargetUser('${uid}','${u.name}','${u.dept}')">
+        <b>${u.name}</b> <span style="color:var(--text3);">${uid} · ${u.dept}</span>
+      </div>`).join('');
+  },
+
+  addTargetUser(uid, name, dept) {
+    // Check not already added
+    if (document.querySelector(`#t-target-users [data-uid="${uid}"]`)) { toast('이미 추가됨'); return; }
+    const chip = document.createElement('span');
+    chip.dataset.uid = uid;
+    chip.style.cssText = 'display:inline-flex;align-items:center;gap:5px;background:var(--blue-bg);color:var(--blue);padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;';
+    chip.innerHTML = `${name} (${dept}) <span onclick="this.parentElement.remove()" style="cursor:pointer;font-weight:900;color:var(--blue);">×</span>`;
+    el('t-target-users').appendChild(chip);
+    el('t-user-search').value='';
+    el('t-user-search-results').style.display='none';
+  },
+
+  _collectTargetUsers() {
+    return Array.from(document.querySelectorAll('#t-target-users [data-uid]')).map(c=>c.dataset.uid);
+  },
+
+  // ── Settings ──────────────────────────────────
+  async loadSettings() {
+    el('cat-list').innerHTML = S.cats.map(c=>`
+      <span style="display:inline-flex;align-items:center;gap:6px;background:var(--bg);border:1.5px solid var(--border);padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;">
+        ${c}<span onclick="App.delCat('${c}')" style="cursor:pointer;color:var(--red);font-weight:900;font-size:14px;line-height:1;">×</span>
+      </span>`).join('');
+    const meta = await FB.getMeta();
+    el('notice-input').value = meta.notice||'';
+  },
+
+  async addCat() {
+    const v=el('cat-input').value.trim().toUpperCase();
+    if (!v) return toast('카테고리명 입력');
+    if (S.cats.includes(v)) return toast('이미 존재합니다.');
+    S.cats.push(v);
+    await FB.setMeta({cats:S.cats}); el('cat-input').value='';
+    toast(`${v} 추가`); this.loadSettings();
+  },
+
+  async delCat(cat) {
+    if (!confirm(`'${cat}' 삭제?`)) return;
+    S.cats=S.cats.filter(c=>c!==cat);
+    await FB.setMeta({cats:S.cats}); toast('삭제 완료'); this.loadSettings();
+  },
+
+  async saveNotice() {
+    const n=el('notice-input').value.trim();
+    S.notice=n; await FB.setMeta({notice:n}); toast('공지 등록'); this.renderNotice('u-notice-area'); this.renderNotice('dash-notice-area');
+  },
+
+  async clearNotice() {
+    S.notice=''; await FB.setMeta({notice:''}); el('notice-input').value=''; toast('공지 삭제');
+    this.renderNotice('u-notice-area'); this.renderNotice('dash-notice-area');
+  },
+
+  async cascadeId() {
+    const oldId=el('cas-old').value.trim(), newId=el('cas-new').value.trim();
+    if (!oldId||!newId) return toast('사번을 입력하세요.');
+    await this._doCascade(oldId,newId);
+    toast(`${oldId} → ${newId} 변경 완료`);
+    el('cas-old').value=''; el('cas-new').value='';
+  },
+
+  async _doCascade(oldId, newId) {
+    const user = await FB.getUser(oldId);
+    if (!user) { toast('기존 사번 없음'); return; }
+    if (await FB.getUser(newId)) { toast('새 사번 이미 존재'); return; }
+    // Move user node
+    await db.ref('/users/'+newId).set(user);
+    await db.ref('/users/'+oldId).remove();
+    // Update apps — full scan (no index needed)
+    const apSnap = await db.ref('/apps').once('value');
+    const apData = apSnap.val()||{};
+    const apUpdates = {};
+    for (const [k,v] of Object.entries(apData)) {
+      if (v.uId===oldId) apUpdates[k+'/uId'] = newId;
+    }
+    if (Object.keys(apUpdates).length) await db.ref('/apps').update(apUpdates);
+    // Update stories — full scan
+    const stSnap = await db.ref('/stories').once('value');
+    const stData = stSnap.val()||{};
+    const stUpdates = {};
+    for (const [k,v] of Object.entries(stData)) {
+      if (v.uId===oldId) stUpdates[k+'/uId'] = newId;
+    }
+    if (Object.keys(stUpdates).length) await db.ref('/stories').update(stUpdates);
+    // Update local cache
+    if (S._users) { S._users[newId]=user; delete S._users[oldId]; }
+  },
+
+  async resetData(node) {
+    const labels={trainings:'교육',interns:'인턴',stories:'스토리'};
+    if (!confirm(`${labels[node]} 데이터를 모두 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`)) return;
+    if (!confirm('정말로 삭제합니다. 한 번 더 확인하세요.')) return;
+    await FB.delNode('/'+node);
+    if (node==='trainings') S._trainings={};
+    if (node==='interns')   S._interns={};
+    if (node==='stories')   S._stories={};
+    toast(`${labels[node]} 데이터 초기화 완료`);
+  },
+
+  // ── Satisfaction Report ───────────────────────
+  async loadSatisfaction() {
+    S._satTab = S._satTab || 'all';
+    const snap = await db.ref('/apps').once('value');
+    S._satApps = Object.values(snap.val()||{}).filter(a=>a.rating>0);
+    this.renderSatContent(S._satTab);
+  },
+
+  switchSatTab(tab) {
+    S._satTab = tab;
+    document.querySelectorAll('#sat-tabs .tab-pill').forEach((p,i)=>{
+      p.classList.toggle('active', ['all','byTrain','byInstructor'][i]===tab);
+    });
+    this.renderSatContent(tab);
+  },
+
+  renderSatContent(tab) {
+    const apps = S._satApps||[];
+    if (!apps.length) {
+      el('sat-content').innerHTML=`<div class="empty"><div class="empty-icon">⭐</div><div class="empty-text">평가 데이터 없음</div></div>`;
+      return;
+    }
+    const avg = arr => arr.length ? (arr.reduce((s,v)=>s+v,0)/arr.length).toFixed(1) : '-';
+    const starRow = val => {
+      const n = parseFloat(val)||0;
+      return `<span class="fw800" style="color:var(--orange);">${val}</span> ${'★'.repeat(Math.round(n))}${'☆'.repeat(5-Math.round(n))}`;
+    };
+
+    if (tab==='all') {
+      const ratings = apps.map(a=>a.rating);
+      const dist = [5,4,3,2,1].map(n=>({n, cnt:ratings.filter(r=>r===n).length}));
+      el('sat-content').innerHTML = `
+        <div class="g4 mb20">
+          <div class="stat-card"><div class="stat-num" style="color:var(--orange);">${avg(ratings)}</div><div class="stat-label">평균 별점</div></div>
+          <div class="stat-card"><div class="stat-num">${apps.length}</div><div class="stat-label">총 평가 수</div></div>
+          <div class="stat-card"><div class="stat-num" style="color:var(--green);">${ratings.filter(r=>r>=4).length}</div><div class="stat-label">4점 이상</div></div>
+          <div class="stat-card"><div class="stat-num" style="color:var(--red);">${ratings.filter(r=>r<=2).length}</div><div class="stat-label">2점 이하</div></div>
+        </div>
+        <div class="panel mb16">
+          <div class="panel-head"><span class="panel-head-title">별점 분포</span></div>
+          <div class="panel-body">
+            ${dist.map(d=>`
+              <div class="row gap8 mb8" style="align-items:center;">
+                <span class="fs12 fw700" style="width:20px;">${d.n}★</span>
+                <div style="flex:1;height:8px;background:var(--border2);border-radius:4px;overflow:hidden;">
+                  <div style="height:100%;background:var(--orange);border-radius:4px;width:${apps.length?Math.round(d.cnt/apps.length*100):0}%;"></div>
+                </div>
+                <span class="fs12 c3" style="width:28px;">${d.cnt}건</span>
+              </div>`).join('')}
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><span class="panel-head-title">최근 후기</span></div>
+          <div class="table-wrap" style="border:none;">
+            <table><thead><tr><th>교육</th><th>이름</th><th>별점</th><th>후기</th><th>일자</th></tr></thead>
+            <tbody>${apps.slice(-20).reverse().map(a=>`<tr>
+              <td class="fw700 fs12">${a.tTitle}</td><td class="fs12">${a.uName}</td>
+              <td style="color:var(--orange);">${'★'.repeat(a.rating)}</td>
+              <td class="fs12 c3">${a.ratingComment||'-'}</td>
+              <td class="fs11 c3">${a.date}</td></tr>`).join('')}
+            </tbody></table>
+          </div>
+        </div>`;
+
+    } else if (tab==='byTrain') {
+      const byTrain = {};
+      apps.forEach(a=>{
+        if (!byTrain[a.tId]) byTrain[a.tId]={title:a.tTitle, ratings:[], comments:[]};
+        byTrain[a.tId].ratings.push(a.rating);
+        if (a.ratingComment) byTrain[a.tId].comments.push(a.ratingComment);
+      });
+      const sorted = Object.values(byTrain).sort((a,b)=>parseFloat(avg(b.ratings))-parseFloat(avg(a.ratings)));
+      el('sat-content').innerHTML = `
+        <div class="table-wrap">
+          <table><thead><tr><th>교육명</th><th>평균</th><th>평가 수</th><th>최근 후기</th></tr></thead>
+          <tbody>${sorted.map(t=>`<tr>
+            <td class="fw700">${t.title}</td>
+            <td class="fs13">${starRow(avg(t.ratings))}</td>
+            <td class="fs12">${t.ratings.length}건</td>
+            <td class="fs12 c3">${t.comments.slice(-1)[0]||'-'}</td></tr>`).join('')}
+          </tbody></table>
+        </div>`;
+
+    } else {
+      const byInstr = {};
+      apps.forEach(a=>{
+        const t = S._trainings?.[a.tId];
+        const key = t?.instructorName || '미지정';
+        if (!byInstr[key]) byInstr[key]={name:key, ratings:[], trains:new Set()};
+        byInstr[key].ratings.push(a.rating);
+        byInstr[key].trains.add(a.tTitle);
+      });
+      const sorted = Object.values(byInstr).sort((a,b)=>parseFloat(avg(b.ratings))-parseFloat(avg(a.ratings)));
+      el('sat-content').innerHTML = `
+        <div class="table-wrap">
+          <table><thead><tr><th>담당자</th><th>평균</th><th>평가 수</th><th>담당 교육</th></tr></thead>
+          <tbody>${sorted.map(i=>`<tr>
+            <td class="fw700">${i.name}</td>
+            <td class="fs13">${starRow(avg(i.ratings))}</td>
+            <td class="fs12">${i.ratings.length}건</td>
+            <td class="fs12 c3">${[...i.trains].join(', ')}</td></tr>`).join('')}
+          </tbody></table>
+        </div>`;
+    }
+  },
+
+  // ── Stories Admin ─────────────────────────────
+  async loadStoriesAdmin() {
+    const stories = await FB.getStories();
+    const counts = {};
+    stories.forEach(s=>{
+      if (!counts[s.uId]) counts[s.uId]={name:s.uName, dept:s.dept, cnt:0};
+      counts[s.uId].cnt++;
+    });
+    const ranked = Object.values(counts).sort((a,b)=>b.cnt-a.cnt).slice(0,10);
+    const medals = ['🥇','🥈','🥉'];
+    el('stories-rank-tbody').innerHTML = ranked.length
+      ? ranked.map((u,i)=>`<tr>
+          <td class="fw800 fs13">${medals[i]||i+1}</td>
+          <td class="fw700">${u.name}</td>
+          <td class="fs12 c3">${u.dept}</td>
+          <td class="fw800 fs13" style="color:var(--accent);">${u.cnt}개</td>
+        </tr>`).join('')
+      : `<tr><td colspan="4" style="padding:24px;text-align:center;color:var(--text3);">데이터 없음</td></tr>`;
+
+    el('stories-admin-recent').innerHTML = stories.slice(0,10).map(s=>`
+      <div style="padding:10px 0;border-bottom:1px solid var(--border2);">
+        <div class="row-between">
+          <span class="fw700 fs13">${s.uName} <span class="c3 fs11">${s.dept}</span></span>
+          <span class="fs11 c3">${s.date}</span>
+        </div>
+        <div class="fs12 mt4" style="color:var(--text2);line-height:1.5;">${s.content.slice(0,70)}${s.content.length>70?'…':''}</div>
+        <div class="row gap4 mt6 wrap">
+          <span class="tag-pill" style="background:var(--text);color:#fff;font-size:9px;margin:0;">#${s.model}</span>
+          <span class="tag-pill" style="background:var(--accent);color:#fff;font-size:9px;margin:0;">#${s.situ}</span>
+        </div>
+      </div>`).join('') || `<div class="empty"><div class="empty-icon">✍️</div><div class="empty-text">인사이트 없음</div></div>`;
+  },
+
+};
+
+// ── Boot ──────────────────────────────────────
+App.init();
+</script>
+</body>
+</html>
