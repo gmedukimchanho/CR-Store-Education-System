@@ -6,7 +6,7 @@
     <title>CR EDUCATION SYSTEM</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
     
-    <!-- CR Core SDKs -->
+    <!-- CR Firebase & Excel SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -15,68 +15,65 @@
         :root { 
             --apple-blue: #0071E3; --apple-gray: #F5F5F7; --apple-border: #E5E5E7;
             --apple-text: #1D1D1F; --apple-sub: #86868B; --apple-red: #FF3B30;
-            --apple-green: #34C759; --radius: 16px; --radius-lg: 40px;
+            --apple-green: #34C759; --radius: 16px; --radius-lg: 44px;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Pretendard', sans-serif; -webkit-font-smoothing: antialiased; }
         body { background: #fff; color: var(--apple-text); line-height: 1.5; letter-spacing: -0.015em; overflow-x: hidden; }
         .hidden { display: none !important; }
 
-        /* Apple UI Toolkit */
-        .btn { background: var(--apple-blue); color: #fff; padding: 14px 28px; cursor: pointer; font-weight: 600; font-size: 15px; border-radius: 40px; border: none; transition: 0.2s; display: inline-flex; align-items: center; justify-content: center; }
-        .btn:hover { background: #0059B3; transform: scale(0.98); }
+        /* UI Framework */
+        .btn { background: var(--apple-blue); color: #fff; padding: 14px 30px; cursor: pointer; font-weight: 600; font-size: 15px; border-radius: 40px; border: none; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: inline-flex; align-items: center; justify-content: center; }
+        .btn:hover { background: #0059B3; transform: scale(0.98); box-shadow: 0 10px 25px rgba(0,113,227,0.15); }
         .btn-outline { background: transparent; border: 1.5px solid var(--apple-border); color: var(--apple-text); }
         .btn-danger { border: 1.5px solid var(--apple-red); color: var(--apple-red); background: transparent; }
-        .btn-danger:hover { background: var(--apple-red); color: #fff; }
         .btn-excel { background: #F2FBF6; color: var(--apple-green); font-weight: 800; border: 1.5px solid #e0f2e9; }
         .btn-full { width: 100%; display: flex; }
         
         input, select, textarea { background: var(--apple-gray); border: 1.5px solid transparent; padding: 18px; width: 100%; margin-bottom: 16px; font-size: 16px; border-radius: 14px; outline: none; transition: 0.3s; color: var(--apple-text); }
         input:focus, textarea:focus { border-color: var(--apple-blue); background: #fff; box-shadow: 0 0 0 4px rgba(0,113,227,0.08); }
-        .input-title { font-size: 12px; font-weight: 900; color: var(--apple-sub); margin-bottom: 8px; padding-left: 5px; text-transform: uppercase; }
+        .input-title { font-size: 12px; font-weight: 900; color: var(--apple-sub); margin-bottom: 8px; padding-left: 6px; text-transform: uppercase; }
 
-        header { padding: 0 50px; height: 76px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #F2F2F7; position: sticky; top: 0; background: rgba(255,255,255,0.85); backdrop-filter: blur(30px); z-index: 2000; }
-        .logo { font-size: 22px; font-weight: 900; letter-spacing: -1.5px; cursor: pointer; color: #000; }
-        .container { max-width: 1500px; margin: 0 auto; padding: 50px; }
+        /* Main Architecture */
+        header { padding: 0 50px; height: 72px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #F2F2F7; position: sticky; top: 0; background: rgba(255,255,255,0.8); backdrop-filter: blur(30px); z-index: 2000; }
+        .logo { font-size: 22px; font-weight: 900; letter-spacing: -2px; cursor: pointer; color: #000; }
+        .container { max-width: 1500px; margin: 0 auto; padding: 60px 50px; }
         
-        .main-nav { display: flex; gap: 40px; margin-bottom: 50px; border-bottom: 2px solid var(--apple-gray); }
+        .main-nav { display: flex; gap: 40px; margin-bottom: 60px; border-bottom: 2px solid var(--apple-gray); }
         .nav-item { font-size: 18px; font-weight: 700; color: var(--apple-sub); cursor: pointer; padding-bottom: 20px; transition: 0.3s; position: relative; }
         .nav-item.active { color: var(--apple-blue); }
         .nav-item.active::after { content: ''; position: absolute; bottom: -2px; left: 0; width: 100%; height: 4px; background: var(--apple-blue); border-radius: 10px; }
 
-        /* Discovery & Cards */
-        .story-hero { background: var(--apple-gray); padding: 60px; border-radius: var(--radius-lg); margin-bottom: 50px; text-align: center; }
-        .discovery-card { background: #fff; padding: 65px; border-radius: var(--radius-lg); border: 1px solid #F0F0F5; box-shadow: 0 40px 100px rgba(0,0,0,0.05); text-align: center; max-width: 850px; margin: 0 auto; position: relative; transition: 0.5s; }
-        .tag-pill { background: #000; color: #fff; padding: 8px 16px; border-radius: 12px; font-size: 12px; font-weight: 800; display: inline-block; margin: 0 5px 30px; letter-spacing: 0.5px;}
-        .edu-comment-box { background: #F2F8FF; padding: 25px; border-radius: 20px; border-left: 6px solid var(--apple-blue); margin-top: 35px; text-align: left; }
+        /* Discovery & Experience */
+        .story-hero { background: var(--apple-gray); padding: 70px; border-radius: var(--radius-lg); margin-bottom: 60px; text-align: center; }
+        .discovery-card { background: #fff; padding: 70px; border-radius: var(--radius-lg); border: 1px solid #F0F0F5; box-shadow: 0 40px 100px rgba(0,0,0,0.06); text-align: center; max-width: 850px; margin: 0 auto; position: relative; transition: 0.5s; }
+        .tag-pill { background: #000; color: #fff; padding: 8px 16px; border-radius: 12px; font-size: 12px; font-weight: 800; display: inline-block; margin: 0 6px 30px; letter-spacing: 0.5px; }
+        .edu-comment-box { background: #F2F8FF; padding: 25px 30px; border-radius: 20px; border-left: 6px solid var(--apple-blue); margin-top: 40px; text-align: left; }
 
-        /* Admin Fullscreen */
+        /* Admin Fullscreen OS */
         #admin-hub { position: fixed; inset: 0; background: #fff; z-index: 5000; overflow-y: auto; padding: 60px; display: flex; flex-direction: column; }
-        .admin-sidebar { width: 340px; border-right: 2px solid var(--apple-gray); padding-right: 40px; height: 100%; }
+        .admin-sidebar { width: 340px; border-right: 2px solid var(--apple-gray); padding-right: 50px; height: 100%; }
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 25px; margin-bottom: 60px; }
-        .stat-card { background: var(--apple-gray); padding: 40px; border-radius: 36px; border: 1.5px solid transparent; transition: 0.4s; cursor: pointer; }
-        .stat-card:hover { border-color: var(--apple-blue); background: #fff; transform: translateY(-5px); box-shadow: 0 15px 30px rgba(0,0,0,0.04); }
-        .stat-card p { font-size: 54px; font-weight: 900; margin-top: 15px; letter-spacing: -2px; }
+        .stat-card { background: var(--apple-gray); padding: 45px; border-radius: 36px; transition: 0.4s; border: 2px solid transparent; cursor: pointer; }
+        .stat-card:hover { border-color: var(--apple-blue); background: #fff; transform: translateY(-8px); box-shadow: 0 20px 40px rgba(0,113,227,0.05); }
+        .stat-card p { font-size: 58px; font-weight: 900; margin-top: 15px; letter-spacing: -3px; }
 
-        /* Intelligence Bar */
-        .intel-bar-bg { background: #E5E5E7; height: 12px; border-radius: 10px; overflow: hidden; width: 100%; margin-top: 8px; }
-        .intel-bar-fill { background: var(--apple-blue); height: 100%; width: 0%; transition: 1.5s; }
-
-        /* Tables & Elements */
+        /* Elements */
         .table-area { width: 100%; overflow-x: auto; border-radius: 28px; border: 1.5px solid var(--apple-gray); background: #fff; }
         table { width: 100%; border-collapse: collapse; min-width: 1200px; }
-        th { background: #FBFBFC; padding: 24px 20px; font-size: 12px; font-weight: 900; color: var(--apple-sub); text-align: left; border-bottom: 2.5px solid #EEE; }
-        td { padding: 24px 20px; border-bottom: 1px solid #F5F5F7; font-size: 15px; font-weight: 600; }
+        th { background: #FBFBFC; padding: 24px 20px; font-size: 12px; font-weight: 900; color: var(--apple-sub); text-align: left; border-bottom: 2.5px solid #EEE; letter-spacing: -0.5px; }
+        td { padding: 24px 20px; border-bottom: 1px solid #F5F5F7; font-size: 16px; font-weight: 500; }
 
-        .prog-container { background: #F2F2F7; height: 14px; border-radius: 20px; overflow: hidden; margin: 15px 0 50px; }
+        .prog-container { background: #F2F2F7; height: 14px; border-radius: 20px; overflow: hidden; margin: 20px 0 60px; }
         .prog-fill { background: var(--apple-blue); height: 100%; width: 0%; transition: 1.5s cubic-bezier(0.4, 0, 0.2, 1); }
-        .course-img-preview, .intern-img-preview { width: 100%; height: 220px; object-fit: cover; border-radius: 18px; border: 2px solid #E5E5E7; background: var(--apple-gray); }
+        .intern-img-preview { width: 160px; height: 210px; object-fit: cover; border-radius: 18px; border: 2px solid #E5E5E7; background: var(--apple-gray); }
+        .course-img-preview { width: 100%; height: 220px; object-fit: cover; border-radius: 18px; border: 2px solid #E5E5E7; background: var(--apple-gray); }
     </style>
 </head>
 <body>
 
-<div id="loading-screen" style="position:fixed; inset:0; background:#fff; z-index:10000; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:24px; letter-spacing:8px; color:var(--apple-blue);">CR FLAWLESS</div>
+<div id="loading-screen" style="position:fixed; inset:0; background:#fff; z-index:10000; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:24px; letter-spacing:8px; color:var(--apple-blue);">CR SYSTEM INITIATING</div>
 
-<!-- Authentication -->
+<!-- Auth Layer -->
 <div id="auth-overlay" class="hidden" style="position:fixed; inset:0; background:#fff; z-index:4000; display:flex; align-items:center; justify-content:center;">
     <div class="auth-box" style="width:100%; max-width:400px; text-align:center; padding: 60px; border-radius: 48px; box-shadow: 0 40px 100px rgba(0,0,0,0.08); border:1px solid #F0F0F5;">
         <h1 style="margin-bottom:15px; font-size: 48px; letter-spacing:-3px; font-weight:900;">CR</h1>
@@ -87,6 +84,7 @@
     </div>
 </div>
 
+<!-- Onboarding -->
 <div id="onboarding-form" class="hidden" style="position:fixed; inset:0; background:rgba(255,255,255,0.95); backdrop-filter:blur(40px); z-index:4100; display:flex; align-items:center; justify-content:center;">
     <div class="auth-box" style="width:100%; max-width:480px; padding:60px; border-radius:44px; background:#fff; box-shadow:0 50px 150px rgba(0,0,0,0.12); border:1px solid #eee;">
         <h2 style="margin-bottom:20px; font-size:30px; letter-spacing:-1px;">PROFILE SETUP</h2>
@@ -126,10 +124,10 @@
         <!-- 1. Experience Hub -->
         <div id="section-stories">
             <div class="story-hero">
-                <h2 style="font-size:46px; margin-bottom:15px; letter-spacing:-2px; font-weight:900;">Success Insights</h2>
-                <p style="color:var(--apple-sub); font-size:18px; font-weight:600; margin-bottom:40px;">동료들의 지혜를 탐색하고, 나의 성공 경험을 기록하세요.</p>
+                <h2 style="font-size:46px; margin-bottom:15px; letter-spacing:-2.5px; font-weight:900;">Success Insights</h2>
+                <p style="color:var(--apple-sub); font-size:18px; font-weight:600; margin-bottom:40px;">동료들의 지혜를 탐색하고, 나의 성공 경험을 아카이브 하세요.</p>
                 <div style="display:flex; justify-content:center; gap:20px;">
-                    <input type="text" id="story-search" placeholder="모델명, 상황 키워드로 검색..." style="width:400px; margin:0; border:2px solid #E5E5E7; background:#fff;">
+                    <input type="text" id="story-search" placeholder="모델명, 키워드로 인사이트 검색..." style="width:400px; margin:0; border:2px solid #E5E5E7; background:#fff;">
                     <button class="btn" style="background:#000;" onclick="document.getElementById('story-write-box').classList.toggle('hidden')">+ 나의 경험 기록하기</button>
                 </div>
             </div>
@@ -137,16 +135,16 @@
             <!-- Write Box -->
             <div id="story-write-box" class="hidden" style="max-width:850px; margin:0 auto 60px; padding:60px; border:3px solid #000; border-radius:var(--radius-lg); background:#fff;">
                 <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px;">
-                    <div><label class="input-title">관련 모델명</label><input type="text" id="story-model" placeholder="예: BOLD"></div>
-                    <div><label class="input-title">상황 키워드</label><input type="text" id="story-situ" placeholder="예: 피팅, 불만응대"></div>
+                    <div><label class="input-title">관련 모델명</label><input type="text" id="story-model" placeholder="예: ZODIAC-02"></div>
+                    <div><label class="input-title">상황 키워드</label><input type="text" id="story-situ" placeholder="예: 피팅, 렌즈 기술, 프레임 소재"></div>
                 </div>
                 <label class="input-title">인사이트 내용</label>
                 <textarea id="story-input" style="height:180px; font-size:18px; line-height:1.6;" placeholder="어떤 성공적인 경험이 있었나요? 구체적인 상황과 해결 방법을 동료들과 나누어 주세요."></textarea>
-                <button class="btn btn-full" style="padding:20px; font-size:16px; margin-top:10px;" onclick="app.saveStory()">인사이트 저장</button>
+                <button class="btn btn-full" style="padding:20px; font-size:16px; margin-top:10px;" onclick="app.saveStory()">인사이트 저장 및 나누기</button>
             </div>
 
             <!-- Discovery (Shuffle) -->
-            <div id="big-card-container" style="display:flex; flex-direction:column; align-items:center; min-height:500px;"></div>
+            <div id="big-card-container" style="display:flex; flex-direction:column; align-items:center; min-height:550px;"></div>
             <div style="text-align:center; margin-top:50px;"><button class="btn btn-outline" style="padding:20px 70px; border-radius:24px; font-weight:900; font-size:16px; border-width:2px;" onclick="app.renderShuffleCard(true)">다음 인사이트 탐색 (NEXT)</button></div>
             
             <!-- Library -->
@@ -163,7 +161,7 @@
                 <select id="cat-filter" onchange="app.renderHome()" style="width:200px; margin:0; font-weight:800; border:2px solid #000;"></select>
             </div>
             <div class="prog-container"><div id="main-progress-bar" class="prog-fill"></div></div>
-            <div id="training-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(380px, 1fr)); gap:40px;"></div>
+            <div id="training-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(400px, 1fr)); gap:40px;"></div>
         </div>
 
         <!-- 3. Mypage -->
@@ -186,9 +184,9 @@
     </header>
     <div class="container" style="display:flex; gap:80px; max-width:100%; padding:60px;">
         <div class="admin-sidebar">
-            <div class="nav-item active" id="adm-nav-dash" onclick="app.switchAdminTab('dash')">통계 및 이수 관리</div>
+            <div class="nav-item active" id="adm-nav-dash" onclick="app.switchAdminTab('dash')">대시보드 / 이수 관리</div>
             <div class="nav-item" id="adm-nav-user" onclick="app.switchAdminTab('user')">인사 마스터</div>
-            <div class="nav-item" id="adm-nav-intern" onclick="app.switchAdminTab('intern')">인턴 관리</div>
+            <div class="nav-item" id="adm-nav-intern" onclick="app.switchAdminTab('intern')">인턴 마스터</div>
             <div class="nav-item" id="adm-nav-train" onclick="app.switchAdminTab('train')">교육 빌더</div>
             <div class="nav-item" id="adm-nav-category" onclick="app.switchAdminTab('category')">교육 카테고리 관리</div>
             <div class="nav-item" id="adm-nav-stories" onclick="app.switchAdminTab('stories')">사례 인텔리전스</div>
@@ -205,7 +203,6 @@
                 </div>
                 <div class="table-area"><table id="admin-master-train-table"></table></div>
                 
-                <!-- Inline Attendance Management -->
                 <div id="admin-train-detail-box" class="hidden" style="margin-top:50px; padding:50px; background:#fff; border:3px solid #000; border-radius:var(--radius-lg);">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:30px;">
                         <h3 style="font-size:24px; letter-spacing:-1px;">명단 인라인 이수 승인</h3>
@@ -215,7 +212,7 @@
                 </div>
             </div>
 
-            <!-- Category Management (New) -->
+            <!-- Category Management -->
             <div id="adm-content-category" class="hidden">
                 <div style="background:var(--apple-gray); padding:50px; border-radius:var(--radius-lg); margin-bottom:40px;">
                     <h4 style="margin-bottom:25px; font-size:22px; letter-spacing:-1px;">교육 카테고리 설정</h4>
@@ -227,23 +224,11 @@
                 <div class="table-area"><table id="admin-cat-table"></table></div>
             </div>
 
-            <!-- Story Intelligence (Scientific Analytics) -->
+            <!-- Story Intelligence -->
             <div id="adm-content-stories" class="hidden">
-                <div class="stats-grid" style="grid-template-columns:1fr 1.5fr;">
+                <div class="stats-grid">
                     <div class="stat-card"><span class="input-title">리더보드 : 최다 작성자</span><p id="st-top-user" style="font-size:28px; font-weight:800; letter-spacing:0;">-</p></div>
-                    <div class="stat-card" style="cursor:pointer; border-color:var(--apple-blue); background:#F2F8FF;" onclick="app.jumpToBestStory()"><span class="input-title" style="color:var(--apple-blue);">최고 반응 게시물 (Click to View)</span><p id="st-top-story" style="font-size:20px; font-weight:700; letter-spacing:0; line-height:1.4;">-</p></div>
-                </div>
-
-                <!-- Deep Intelligence Bars -->
-                <div style="display:grid; grid-template-columns:1fr 1fr; gap:40px; margin-bottom:50px;">
-                    <div style="background:#fff; border:1px solid #E5E5E7; padding:40px; border-radius:32px;">
-                        <h5 class="input-title" style="margin-bottom:20px;">인기 모델 TOP 3</h5>
-                        <div id="intel-model-bars"></div>
-                    </div>
-                    <div style="background:#fff; border:1px solid #E5E5E7; padding:40px; border-radius:32px;">
-                        <h5 class="input-title" style="margin-bottom:20px;">상황 키워드 TOP 3</h5>
-                        <div id="intel-situ-bars"></div>
-                    </div>
+                    <div class="stat-card" style="cursor:pointer; border-color:var(--apple-blue); background:#F2F8FF;" onclick="app.jumpToBestStory()"><span class="input-title" style="color:var(--apple-blue);">최고 반응 게시물 (Click)</span><p id="st-top-story" style="font-size:20px; font-weight:700; letter-spacing:0; line-height:1.4;">-</p></div>
                 </div>
                 
                 <div style="background:var(--apple-gray); padding:50px; border-radius:var(--radius-lg); margin-bottom:50px;">
@@ -258,13 +243,13 @@
                 <div class="table-area"><table id="admin-stories-table"></table></div>
             </div>
 
-            <!-- HR Master (Cascade Sync) -->
+            <!-- HR Master -->
             <div id="adm-content-user" class="hidden">
                 <div style="display:grid; grid-template-columns:1.2fr 1fr; gap:60px; margin-bottom:60px;">
                     <div class="panel-box" style="background:#fff; border:2px solid #E5E5E7; padding:50px; border-radius:var(--radius-lg);">
                         <h4 style="margin-bottom:25px; font-size:22px; letter-spacing:-1px;">프로필 마스터 수정 (ID Cascade Sync)</h4>
                         <input type="hidden" id="old-u-id">
-                        <label class="input-title">사번 (변경 시 이력 자동 승계)</label><input type="text" id="u-id">
+                        <label class="input-title">사번 (변경 시 데이터 자동 승계)</label><input type="text" id="u-id">
                         <div style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
                             <div><label class="input-title">성함</label><input type="text" id="u-name"></div>
                             <div><label class="input-title">소속 매장</label><input type="text" id="u-dept"></div>
@@ -281,19 +266,19 @@
                         <h4 style="margin-bottom:25px; font-size:22px; letter-spacing:-1px; color:var(--apple-blue);">엑셀 데이터 센터</h4>
                         <button class="btn btn-outline btn-full" style="margin-bottom:15px; background:#fff;" onclick="app.downloadTemplate('hr')">업로드 클린 양식 받기 (Header Only)</button>
                         <button class="btn btn-excel btn-full" style="margin-bottom:30px;" onclick="app.downloadFullHR()">전체 임직원 명단 다운로드 (CSV)</button>
-                        <label class="input-title">데이터 동기화 업로드</label>
+                        <label class="input-title">데이터 동기화 업로드 (대량 등록)</label>
                         <input type="file" id="excel-input" accept=".xlsx, .xls">
                         <button class="btn btn-full" onclick="app.handleExcelUpload()">인사 통합 싱크 실행</button>
                     </div>
                 </div>
-                <input type="text" id="u-search-admin" placeholder="통합 검색 (이름, 사번, 소속)..." onkeyup="app.renderAdminUserList()" style="width:100%; border-radius:20px; border:2.5px solid #F0F0F0; padding:25px; font-size:18px; font-weight:800; background:#fff; margin-bottom:30px; box-shadow:0 10px 30px rgba(0,0,0,0.03);">
+                <input type="text" id="u-search-admin" placeholder="통합 검색 (이름, 사번, 소속)..." onkeyup="app.renderAdminUserList()" style="width:100%; border-radius:20px; border:2.5px solid #F0F0F0; padding:25px; font-size:18px; font-weight:800; background:#fff; margin-bottom:30px;">
                 <div class="table-area"><table id="admin-u-table"></table></div>
             </div>
 
-            <!-- Education Builder (Zero-Bug + Uploads) -->
+            <!-- Education Builder -->
             <div id="adm-content-train" class="hidden">
                 <div style="background:var(--apple-gray); padding:60px; border-radius:var(--radius-lg); margin-bottom:60px;">
-                    <h4 style="margin-bottom:30px; font-size:26px; letter-spacing:-1px;">LMS 과정 빌더</h4>
+                    <h4 style="margin-bottom:30px; font-size:26px; letter-spacing:-1px;">LMS 빌더</h4>
                     <input type="hidden" id="edit-t-id">
                     
                     <div style="display:grid; grid-template-columns:300px 1fr; gap:40px; margin-bottom:30px;">
@@ -304,23 +289,25 @@
                         </div>
                         <div>
                             <div style="background:#fff; padding:30px; border-radius:24px; border:1px solid #E5E5E7; margin-bottom:20px;">
-                                <label style="font-weight:900; font-size:16px; display:flex; align-items:center; gap:10px;"><input type="checkbox" id="t-mandatory" style="width:auto; margin:0;" onchange="app.toggleDeptSection()"> 의무교육 타겟팅 설정</label>
+                                <label style="font-weight:900; font-size:16px; display:flex; align-items:center; gap:10px;"><input type="checkbox" id="t-mandatory" style="width:auto; margin:0;" onchange="app.toggleDeptSection()"> 의무교육 타겟팅 (Targeting)</label>
                                 <div id="dept-select-section" class="hidden" style="margin-top:20px;">
-                                    <div class="input-title">대상 매장 다중 선택</div>
+                                    <div class="input-title">대상 매장 멀티 체크</div>
                                     <div id="dept-checkbox-list" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(120px, 1fr)); gap:12px; padding:20px; background:var(--apple-gray); border-radius:16px;"></div>
                                 </div>
                             </div>
                             
                             <div style="display:grid; grid-template-columns:2fr 1fr; gap:20px; margin-bottom:15px;">
-                                <div><label class="input-title">과정 정식 명칭</label><input type="text" id="t-title" placeholder="과정명 입력"></div>
+                                <div><label class="input-title">과정 정식 명칭</label><input type="text" id="t-title" placeholder="과정명"></div>
                                 <div><label class="input-title">카테고리</label><select id="t-cat-sel"></select></div>
                             </div>
+                            
                             <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:15px;">
                                 <div><label class="input-title">교육 장소 / 온라인 링크</label><input type="text" id="t-place" placeholder="장소 입력"></div>
                                 <div><label class="input-title">수료 설문 URL</label><input type="text" id="t-survey" placeholder="https://..."></div>
                             </div>
+
                             <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; margin-bottom:15px;">
-                                <div><label class="input-title">정원 (명)</label><input type="number" id="t-quota" placeholder="숫자"></div>
+                                <div><label class="input-title">세션당 정원 (명)</label><input type="number" id="t-quota" placeholder="숫자 입력"></div>
                                 <div><label class="input-title">신청 마감일</label><input type="date" id="t-dead"></div>
                                 <div>
                                     <label class="input-title">학습 자료 파일 (옵션)</label>
@@ -331,7 +318,6 @@
                         </div>
                     </div>
 
-                    <!-- Session Auto Calc -->
                     <div style="background:#fff; padding:30px; border-radius:24px; border:1px solid #E5E5E7; margin-bottom:30px;">
                         <h5 class="input-title" style="color:var(--apple-blue); margin-bottom:20px;">세션 시간 설계 (자동 연산)</h5>
                         <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:15px; align-items:end;">
@@ -350,12 +336,14 @@
                 <div class="table-area"><table id="admin-train-list-table"></table></div>
             </div>
 
-            <!-- Intern Master (19 Fields) -->
+            <!-- Intern Master -->
             <div id="adm-content-intern" class="hidden">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:40px;">
                     <div style="display:flex; gap:15px;">
                         <button class="btn" style="background:#000;" onclick="app.showInternForm()">+ 신규 인턴 등록</button>
-                        <button class="btn btn-excel" onclick="app.downloadTemplate('intern')">클린 양식 받기</button>
+                        <button class="btn btn-excel" onclick="app.downloadTemplate('intern')">클린 업로드 양식 받기</button>
+                        <button class="btn btn-outline" onclick="document.getElementById('intern-excel-input').click()">대량 엑셀 업로드</button>
+                        <input type="file" id="intern-excel-input" class="hidden" accept=".xlsx, .xls" onchange="app.handleInternExcel(this)">
                     </div>
                 </div>
                 
@@ -412,7 +400,7 @@
 </div>
 
 <script>
-    // ⚠️ CR ETERNAL ARCHITECTURE V77 (Zero-Latency, Object Models, Strict CSV)
+    // ⚠️ CR ETERNAL ARCHITECTURE V78 (Zero-Latency, Batch Excel, Strict CSV)
     const firebaseConfig = {
         apiKey: "AIzaSyD-d8gTqhpFinzg-sACv-HKqPaFOKjhJAI",
         authDomain: "cr-store-edu-system.firebaseapp.com",
@@ -456,7 +444,7 @@
             }).then(() => { if(callback) callback(); });
         },
 
-        /* Navigation: Logo -> Home */
+        /* Global Routing: Logo to Home */
         goHome: function() {
             this.toggleAdminHub(false);
             this.showSection('stories');
@@ -492,7 +480,6 @@
             const idx = this.state.stories.findIndex(s=>s.id === id);
             if(idx > -1) { 
                 this.state.stories[idx].emojis[key]++; 
-                // Zero-Latency Update
                 this.save(() => { this.renderShuffleCard(false); this.renderLibrary(); });
             }
         },
@@ -501,7 +488,6 @@
             const m = document.getElementById('story-model').value.trim(), s = document.getElementById('story-situ').value.trim(), c = document.getElementById('story-input').value.trim();
             if(!m || !s || !c) return alert("모델명, 상황, 내용을 모두 입력해 주세요.");
             const u = this.state.users[this.state.user];
-            // Force Standard YYYY-MM-DD
             const d = new Date(); const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
             this.state.stories.unshift({ id: Date.now(), uId: this.state.user, uName: u.name, dept: u.dept, content: c, model: m, situ: s, emojis: { thumbs: 0, heart: 0, clap: 0 }, date: dateStr });
             this.save(() => { 
@@ -512,19 +498,17 @@
             });
         },
 
-        /* Intelligence Reporting (Visual Progress & Export) */
+        /* Intelligence Reporting (Dates & Export) */
         getWeekOfMonth: function(dateStr) {
             const d = new Date(dateStr);
             return Math.ceil((d.getDate() + new Date(d.getFullYear(), d.getMonth(), 1).getDay()) / 7);
         },
 
         renderAdminStories: function() {
-            const userCount = {}, reactionCount = {}, modelCount = {}, situCount = {};
+            const userCount = {}, reactionCount = {};
             this.state.stories.forEach(s => {
                 userCount[s.uId] = (userCount[s.uId]||0) + 1;
                 reactionCount[s.id] = (s.emojis.thumbs||0) + (s.emojis.heart||0) + (s.emojis.clap||0);
-                if(s.model) modelCount[s.model] = (modelCount[s.model]||0) + 1;
-                if(s.situ) situCount[s.situ] = (situCount[s.situ]||0) + 1;
             });
             const topUser = Object.keys(userCount).sort((a,b)=>userCount[b]-userCount[a])[0];
             const bestId = Object.keys(reactionCount).sort((a,b)=>reactionCount[b]-reactionCount[a])[0];
@@ -533,16 +517,8 @@
             document.getElementById('st-top-user').innerText = topUser ? `${this.state.users[topUser]?.name || topUser} (${userCount[topUser]}건)` : "-";
             document.getElementById('st-top-story').innerHTML = best ? `"${best.content.substring(0,15)}..."<br><span style="color:var(--apple-sub); font-size:14px;">(반응 ${reactionCount[bestId]}개)</span>` : "-";
 
-            // Visual Progress Bars for TOP 3 Models & Situations
-            const getTop3 = (obj) => Object.keys(obj).sort((a,b)=>obj[b]-obj[a]).slice(0,3);
-            const totalModels = Object.values(modelCount).reduce((a,b)=>a+b,0) || 1;
-            const totalSitus = Object.values(situCount).reduce((a,b)=>a+b,0) || 1;
-            
-            document.getElementById('intel-model-bars').innerHTML = getTop3(modelCount).map(k => `<div style="margin-bottom:15px;"><div style="display:flex; justify-content:space-between; font-size:14px; font-weight:800;"><span>${k}</span><span>${modelCount[k]}건</span></div><div class="intel-bar-bg"><div class="intel-bar-fill" style="width:${(modelCount[k]/totalModels*100)}%;"></div></div></div>`).join('');
-            document.getElementById('intel-situ-bars').innerHTML = getTop3(situCount).map(k => `<div style="margin-bottom:15px;"><div style="display:flex; justify-content:space-between; font-size:14px; font-weight:800;"><span>${k}</span><span>${situCount[k]}건</span></div><div class="intel-bar-bg"><div class="intel-bar-fill" style="width:${(situCount[k]/totalSitus*100)}%;"></div></div></div>`).join('');
-
             document.getElementById('admin-stories-table').innerHTML = `<thead><tr><th>작성자(사번)</th><th>미리보기</th><th>반응제어</th><th>교육팀 코멘트</th><th>삭제</th></tr></thead><tbody>` + 
-                this.state.stories.map(s => `<tr><td><b>${s.uName}</b><br><span style="font-size:12px; color:var(--apple-sub);">${s.uId}</span></td><td>${s.content.substring(0,25)}...</td><td>
+                this.state.stories.map(s => `<tr><td><b>${s.uName}</b><br><span style="font-size:12px; color:var(--apple-sub);">${s.uId}</span></td><td>${s.content.substring(0,30)}...</td><td>
                 <button class="btn btn-sm btn-outline" style="padding:5px 10px;" onclick="app.adjustReaction(${s.id},'thumbs',1)">👍+</button> <button class="btn btn-sm btn-outline" style="padding:5px 10px;" onclick="app.adjustReaction(${s.id},'thumbs',-1)">-</button></td><td>
                 <input type="text" id="cmt-${s.id}" value="${s.eduComment||''}" style="width:160px; margin:0; padding:10px;"><button class="btn btn-sm" onclick="app.saveComment(${s.id})">저장</button></td><td><button class="btn btn-sm btn-danger" onclick="app.delStory(${s.id})">X</button></td></tr>`).join('');
         },
@@ -563,11 +539,10 @@
             this.state.stories.filter(s=> s.date >= start && s.date <= end).forEach(s=> {
                 const total = (s.emojis.thumbs||0) + (s.emojis.heart||0) + (s.emojis.clap||0);
                 const month = s.date.split('-')[1];
-                // Escape comma and quotes
                 const contentStr = `"${s.content.replace(/"/g,'""').replace(/,/g,' ')}"`;
                 csv += `${s.uId},${s.uName},${s.dept},${s.date},${month}월,${this.getWeekOfMonth(s.date)}주차,${s.model},${s.situ},${total},${contentStr}\n`;
             });
-            this.downloadCSV(csv, `CR_Intelligence_${start}_${end}.csv`);
+            this.downloadCSV(csv, `CR_Intelligence_${start}_to_${end}.csv`);
         },
 
         /* Category Management */
@@ -583,10 +558,10 @@
             this.save(() => { document.getElementById('new-cat-input').value=''; this.renderCategories(); });
         },
         delCategory: function(idx) {
-            if(confirm("삭제하시겠습니까?")) { this.state.cats.splice(idx, 1); this.save(() => this.renderCategories()); }
+            if(confirm("이 카테고리를 삭제하시겠습니까?")) { this.state.cats.splice(idx, 1); this.save(() => this.renderCategories()); }
         },
 
-        /* Education Builder (Zero-Bug & File Uploads) */
+        /* Education Builder (Fixed Logic & Uploads) */
         previewCourseImage: function(input) { const r = new FileReader(); r.onload = e => { this.currentCourseImage = e.target.result; document.getElementById('t-img-preview').src = e.target.result; }; r.readAsDataURL(input.files[0]); },
         attachCourseFile: function(input) { const r = new FileReader(); r.onload = e => { this.currentCourseFile = e.target.result; this.currentCourseFileName = input.files[0].name; document.getElementById('t-file-name').innerText = this.currentCourseFileName; }; r.readAsDataURL(input.files[0]); },
 
@@ -654,7 +629,7 @@
         },
         statusChange: function(tId,uId,ns) { const idx = this.state.apps.findIndex(a=>a.tId==tId && a.uId==uId); if(idx>-1) { this.state.apps[idx].status = ns; this.save(); }},
 
-        /* HR: Cascade Sync & Protection */
+        /* HR: Cascade Sync & Bulk Excel */
         adminSaveUser: function() {
             const oldId = document.getElementById('old-u-id').value, newId = document.getElementById('u-id').value.trim();
             if(oldId && oldId !== newId) {
@@ -664,7 +639,7 @@
                 this.state.apps.forEach(a => { if(a.uId === oldId) a.uId = newId; });
                 this.state.stories.forEach(s => { if(s.uId === oldId) s.uId = newId; });
                 if(this.state.interns[oldId]) { this.state.interns[newId] = this.state.interns[oldId]; delete this.state.interns[oldId]; }
-                if(this.state.user === oldId) this.state.user = newId; // Update session if self
+                if(this.state.user === oldId) this.state.user = newId; 
             } else if(!oldId) { 
                 if(!newId) return alert("사번을 입력하세요.");
                 this.state.users[newId] = { pw: '1234', isFirst: true, role: 'user' }; 
@@ -674,29 +649,32 @@
         },
 
         handleExcelUpload: function() {
-            const fi = document.getElementById('excel-input'), file = fi.files[0];
-            if(!file) return alert("파일을 첨부하세요.");
+            const fi = document.getElementById('excel-input');
+            if(!fi.files[0]) return alert("파일을 첨부하세요.");
             const reader = new FileReader();
             reader.onload = (e) => {
                 const rows = XLSX.utils.sheet_to_json(XLSX.read(new Uint8Array(e.target.result), {type: 'array'}).Sheets[0], {header: 1});
+                let count = 0;
                 for(let i=1; i<rows.length; i++) {
+                    if(!rows[i] || !rows[i][0]) continue;
                     const id = String(rows[i][0]).trim(), name = rows[i][1], dept = rows[i][2], pos = rows[i][3] || '팀원';
-                    if(id) {
-                        if(!this.state.users[id]) this.state.users[id] = { pw: '1234', isFirst: true, role: 'user', name, dept, pos };
-                        else {
-                            const existingRole = this.state.users[id].role;
-                            this.state.users[id].name = name; this.state.users[id].dept = dept; this.state.users[id].pos = pos;
-                            if(existingRole === 'admin') this.state.users[id].role = 'admin'; // Protect
-                        }
+                    if(!this.state.users[id]) {
+                        this.state.users[id] = { pw: '1234', isFirst: true, role: 'user', name, dept, pos };
+                    } else {
+                        const existingRole = this.state.users[id].role;
+                        this.state.users[id].name = name; this.state.users[id].dept = dept; this.state.users[id].pos = pos;
+                        if(existingRole === 'admin') this.state.users[id].role = 'admin'; // Protect
                     }
+                    count++;
                 }
-                this.save(() => { alert("인사 업로드 완료."); this.renderAdminUserList(); });
+                this.save(() => { alert(`${count}명의 인사 데이터 업로드 완료.`); this.renderAdminUserList(); fi.value=''; });
             };
-            reader.readAsArrayBuffer(file);
+            reader.readAsArrayBuffer(fi.files[0]);
         },
 
-        /* Intern Master (19 Fields) */
+        /* Intern Master (19 Fields & Bulk Excel) */
         previewInternPhoto: function(i) { const r = new FileReader(); r.onload = e => { this.currentInternPhoto = e.target.result; document.getElementById('intern-photo-preview').src = e.target.result; }; r.readAsDataURL(i.files[0]); },
+        
         saveIntern: function() {
             const id = this.targetInternId || Date.now().toString();
             const data = { id, photo: this.currentInternPhoto };
@@ -706,6 +684,32 @@
             this.state.interns[id] = data;
             this.save(() => { alert("인턴 마스터 저장 완료."); document.getElementById('intern-form-box').classList.add('hidden'); this.renderInternList(); });
         },
+
+        handleInternExcel: function(input) {
+            const file = input.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const rows = XLSX.utils.sheet_to_json(XLSX.read(new Uint8Array(e.target.result), {type:'array'}).Sheets[0], {header:1});
+                let count = 0;
+                for(let i=1; i<rows.length; i++){
+                    const d = rows[i];
+                    if(!d || !d[0]) continue;
+                    const id = Date.now().toString() + i;
+                    this.state.interns[id] = {
+                        id: id, name: d[0]||'', entry: d[1]||'', finalM: d[2]||'', region: d[3]||'', plat: d[4]||'',
+                        contractS: d[5]||'', interview1: d[6]||'', contractE: d[7]||'', contractExt: d[8]||'',
+                        finalInt: d[9]||'', fullDate: d[10]||'', outDate: d[11]||'', place1: d[12]||'',
+                        place2: d[13]||'', contact: d[14]||'', schoolYN: d[15]||'', schoolName: d[16]||'',
+                        status: d[17]||'지원자', address: d[18]||'', memo: d[19]||''
+                    };
+                    count++;
+                }
+                this.save(() => { alert(`${count}명의 인턴 정보 업로드 완료.`); this.renderInternList(); input.value=''; });
+            };
+            reader.readAsArrayBuffer(file);
+        },
+
         showInternForm: function(id = null) {
             this.targetInternId = id; document.getElementById('intern-form-box').classList.remove('hidden');
             const fields = ['name','entry','finalM','region','plat','contractS','interview1','contractE','contractExt','finalInt','fullDate','outDate','place1','place2','contact','schoolYN','schoolName','status','address','memo'];
@@ -718,6 +722,7 @@
                 document.getElementById('intern-photo-preview').src = ''; this.currentInternPhoto = null;
             }
         },
+
         renderInternList: function() {
             const list = Object.values(this.state.interns);
             document.getElementById('intern-table').innerHTML = `<thead><tr><th>PHOTO</th><th>이름</th><th>입사월</th><th>근무지1</th><th>상태</th><th>관리</th></tr></thead><tbody>` + 
@@ -725,7 +730,7 @@
         },
         delIntern: function(id) { if(confirm("해당 인턴의 모든 19개 필드 기록을 영구 삭제합니까?")) { delete this.state.interns[id]; this.save(()=>this.renderInternList()); }},
 
-        /* Auth & Base Routing */
+        /* Auth & Routing */
         handleLogin: function() {
             const id = document.getElementById('login-id').value.trim(), pw = document.getElementById('login-pw').value.trim(), u = this.state.users[id];
             if(u && u.pw === pw) { this.state.user = id; document.getElementById('auth-overlay').classList.add('hidden'); document.getElementById('main-ui').classList.remove('hidden'); if(u.isFirst) document.getElementById('onboarding-form').classList.remove('hidden'); else this.renderHome(); }
@@ -785,7 +790,7 @@
         renderMyPage: function() { document.getElementById('my-apps-table').innerHTML = `<thead><tr><th>과정명</th><th>상태</th></tr></thead><tbody>`+this.state.apps.filter(a=>a.uId==this.state.user).map(a=>`<tr><td><b>${a.tTitle}</b></td><td><span style="font-size:12px; font-weight:800; background:var(--apple-gray); padding:6px 12px; border-radius:10px;">${a.status}</span></td></tr>`).join('')+`</tbody>`; document.getElementById('my-story-list').innerHTML = this.state.stories.filter(s=>s.uId==this.state.user).map(s=>`<div style="background:var(--apple-gray); padding:35px; border-radius:28px;"><p style="font-weight:700;">"${s.content}"</p><button class="btn btn-sm btn-danger" style="margin-top:20px;" onclick="app.delStory(${s.id});">삭제</button></div>`).join(''); },
         switchMyTab: function(t) { document.getElementById('my-tab-apps').classList.toggle('active', t==='apps'); document.getElementById('my-tab-stories').classList.toggle('active', t==='stories'); document.getElementById('my-content-apps').classList.toggle('hidden', t!=='apps'); document.getElementById('my-content-stories').classList.toggle('hidden', t!=='stories'); },
         
-        /* Utils & CSV Clean Header */
+        /* Utils & CSV Output */
         downloadCSV: function(csv, f) { const b = new Blob(["\uFEFF"+csv],{type:'text/csv;charset=utf-8;'}); const l = document.createElement("a"); l.href = URL.createObjectURL(b); l.download = f; l.click(); },
         downloadTemplate: function(t) { this.downloadCSV(t==='hr'?"사번,이름,소속,직급\n":"이름,입사월,최종월,지역,플랫폼,계약시작일,1개월면담일,계약종료일,연장종료일,최종면접일,전환일,퇴사일,근무지1,근무지2,연락처,재학여부,학교명,상태,주소,특이사항\n", `CR_${t.toUpperCase()}_CLEAN_TEMPLATE.csv`); },
         downloadFullHR: function() { let c="사번,이름,부서,직급,권한\n"; Object.keys(this.state.users).forEach(id=>{ const u=this.state.users[id]; c+=`${id},${u.name},${u.dept},${u.pos},${u.role}\n`; }); this.downloadCSV(c, "CR_FULL_HR_MASTER.csv"); },
