@@ -398,6 +398,8 @@ tbody tr:hover { background:var(--bg); }
 .org-item.selected { background:var(--accent); color:#fff; border-radius:var(--r); }
 .org-warn { background:var(--orange-bg); border:1px solid rgba(224,123,57,.3); border-radius:var(--r); padding:8px 12px; font-size:11px; font-weight:700; color:var(--orange); margin-top:6px; }
 .dept-mismatch-badge { background:var(--orange-bg); color:var(--orange); font-size:9px; font-weight:800; padding:2px 6px; border-radius:4px; margin-left:4px; }
+.story-content-cell { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:pointer; transition:white-space .1s; }
+.story-content-cell.expanded { white-space:normal; overflow:visible; }
 </style>
 </head>
 <body>
@@ -1084,7 +1086,7 @@ tbody tr:hover { background:var(--bg); }
               <table>
                 <thead><tr>
                   <th style="width:32px;"><input type="checkbox" id="stories-admin-check-all" onclick="App.toggleAllStoriesAdmin(this)" style="width:auto;padding:0;background:none;border:1.5px solid var(--border);margin:0;cursor:pointer;"></th>
-                  <th>이름</th><th>소속</th><th>모델</th><th>상황</th><th>내용</th><th>날짜</th>
+                  <th>이름</th><th>소속</th><th>모델</th><th>상황</th><th>내용</th><th>날짜</th><th>관리</th>
                 </tr></thead>
                 <tbody id="stories-admin-tbody"></tbody>
               </table>
@@ -1298,6 +1300,44 @@ tbody tr:hover { background:var(--bg); }
     <input type="hidden" id="rating-app-idx">
     <input type="hidden" id="rating-star-val" value="0">
     <button class="btn btn-accent btn-full" onclick="App.submitRating()">평가 완료</button>
+  </div>
+</div>
+
+<!-- Story Edit Modal (Admin) -->
+<div id="story-edit-modal" class="overlay overlay-bg">
+  <div style="background:var(--surface);border-radius:var(--r-xl);padding:28px;width:92%;max-width:520px;max-height:88vh;overflow-y:auto;box-shadow:var(--shadow-lg);">
+    <div class="row-between mb16">
+      <div class="fw800" style="font-size:16px;">인사이트 수정</div>
+      <button class="btn btn-ghost btn-icon" onclick="App.closeStoryEditModal()">✕</button>
+    </div>
+    <input type="hidden" id="se-id">
+    <!-- 작성자 정보 (읽기 전용) -->
+    <div style="background:var(--bg);border-radius:var(--r);padding:10px 14px;margin-bottom:16px;display:flex;gap:12px;">
+      <div>
+        <div class="fw700 fs13" id="se-author-name"></div>
+        <div class="fs11 c3" id="se-author-info"></div>
+      </div>
+    </div>
+    <div class="field">
+      <span class="field-label">모델명</span>
+      <input type="text" id="se-model" placeholder="예: SITUATION MODEL">
+    </div>
+    <div class="field">
+      <span class="field-label">상황 키워드</span>
+      <input type="text" id="se-situ" placeholder="예: 고객응대">
+    </div>
+    <div class="field">
+      <span class="field-label">내용</span>
+      <textarea id="se-content" style="height:140px;resize:vertical;" placeholder="인사이트 내용"></textarea>
+    </div>
+    <div class="field">
+      <span class="field-label">📌 교육팀 코멘트 <span class="fs11 c3">(선택)</span></span>
+      <input type="text" id="se-admin-comment" placeholder="교육팀 피드백을 입력하세요">
+    </div>
+    <div class="row gap8 mt8">
+      <button class="btn btn-accent btn-full" onclick="App.saveStoryEdit()">저장</button>
+      <button class="btn btn-outline" onclick="App.closeStoryEditModal()">취소</button>
+    </div>
   </div>
 </div>
 
@@ -1526,6 +1566,7 @@ const FB = {
   setIntern:   (id, data)  => db.ref('/interns/'+id).set(data),
   delIntern:   id          => db.ref('/interns/'+id).remove(),
   setStory:    (id, data)  => db.ref('/stories/'+id).set(data),
+  delStory:    id          => db.ref('/stories/'+id).remove(),
   setMeta:     data        => db.ref('/meta').update(data),
   delNode:     path        => db.ref(path).remove(),
 };
@@ -3573,16 +3614,27 @@ const App = {
 
     const tbody = el('stories-admin-tbody');
     if (!tbody) return;
-    if (!list.length) { tbody.innerHTML=`<tr><td colspan="7" style="padding:24px;text-align:center;color:var(--text3);">데이터 없음</td></tr>`; return; }
-    tbody.innerHTML = list.map((s,i)=>`<tr>
-      <td><input type="checkbox" class="stories-admin-chk" data-idx="${i}" onclick="App.onStoriesAdminCheck()" style="width:auto;padding:0;background:none;border:1.5px solid var(--border);margin:0;cursor:pointer;"></td>
-      <td class="fw700 fs12">${s.uName}</td>
-      <td class="fs12 c3">${s.dept}</td>
-      <td class="fs12"><span class="tag-pill" style="background:var(--text);color:#fff;font-size:9px;margin:0;">#${s.model}</span></td>
-      <td class="fs12"><span class="tag-pill" style="background:var(--accent);color:#fff;font-size:9px;margin:0;">#${s.situ}</span></td>
-      <td class="fs12" style="max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.content}</td>
-      <td class="fs11 c3">${s.date}</td>
-    </tr>`).join('');
+    if (!list.length) {
+      tbody.innerHTML=`<tr><td colspan="8" style="padding:24px;text-align:center;color:var(--text3);">데이터 없음</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = list.map((s,i)=>`
+      <tr>
+        <td><input type="checkbox" class="stories-admin-chk" data-idx="${i}" onclick="App.onStoriesAdminCheck()" style="width:auto;padding:0;background:none;border:1.5px solid var(--border);margin:0;cursor:pointer;"></td>
+        <td class="fw700 fs12">${s.uName}</td>
+        <td class="fs12 c3">${s.dept||'-'}</td>
+        <td class="fs12"><span class="tag-pill" style="background:var(--text);color:#fff;font-size:9px;margin:0;">#${s.model||''}</span></td>
+        <td class="fs12"><span class="tag-pill" style="background:var(--accent);color:#fff;font-size:9px;margin:0;">#${s.situ||''}</span></td>
+        <td class="fs12" style="max-width:200px;">
+          <div class="story-content-cell" onclick="this.classList.toggle('expanded')" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;" title="클릭하면 전체 내용 보기">${s.content}</div>
+          ${s.adminComment?`<div class="fs11 mt4" style="color:var(--orange);">📌 ${s.adminComment}</div>`:''}
+        </td>
+        <td class="fs11 c3">${s.date}</td>
+        <td class="td-actions">
+          <button class="btn btn-outline btn-xs" data-id="${s.id}" onclick="App.openStoryEditModal(this.dataset.id)">수정</button>
+          <button class="btn btn-danger btn-xs" data-id="${s.id}" onclick="App.deleteStoryAdmin(this.dataset.id)">삭제</button>
+        </td>
+      </tr>`).join('');
     el('stories-admin-check-all').checked=false;
     el('stories-admin-bulk-bar').style.display='none';
   },
@@ -3590,6 +3642,75 @@ const App = {
   filterStoriesAdmin() {
     const stories = S._storiesAll||[];
     this._renderStoriesAdminTable(stories);
+  },
+
+  // ── Story Edit / Delete (Admin) ───────────────
+  openStoryEditModal(storyId) {
+    // Find story from cache
+    const s = (S._storiesAll||[]).find(s=>s.id===storyId);
+    if (!s) return toast('인사이트를 찾을 수 없습니다.');
+    el('se-id').value = storyId;
+    el('se-author-name').textContent = s.uName||'';
+    el('se-author-info').textContent = `${s.dept||''} · ${s.date||''}`;
+    el('se-model').value = s.model||'';
+    el('se-situ').value  = s.situ||'';
+    el('se-content').value = s.content||'';
+    el('se-admin-comment').value = s.adminComment||'';
+    showOv('story-edit-modal');
+  },
+
+  closeStoryEditModal() {
+    hideOv('story-edit-modal');
+  },
+
+  async saveStoryEdit() {
+    const id = el('se-id').value;
+    if (!id) return;
+    const content = el('se-content').value.trim();
+    if (!content) return toast('내용을 입력하세요.');
+    // Find original story to merge (preserve reactions, uId, date etc.)
+    const orig = (S._storiesAll||[]).find(s=>s.id===id);
+    if (!orig) return toast('원본 인사이트를 찾을 수 없습니다.');
+    const updated = {
+      ...orig,
+      model:        el('se-model').value.trim() || orig.model,
+      situ:         el('se-situ').value.trim()  || orig.situ,
+      content,
+      adminComment: el('se-admin-comment').value.trim(),
+    };
+    await FB.setStory(id, updated);
+    // Update local cache
+    if (S._storiesAll) {
+      const idx = S._storiesAll.findIndex(s=>s.id===id);
+      if (idx !== -1) S._storiesAll[idx] = updated;
+    }
+    toast('수정 완료');
+    this.closeStoryEditModal();
+    this._renderStoriesAdminTable(S._storiesAll||[]);
+    // Also refresh recent block
+    el('stories-admin-recent').innerHTML = (S._storiesAll||[]).slice(0,10).map(s=>`
+      <div style="padding:10px 0;border-bottom:1px solid var(--border2);">
+        <div class="row-between">
+          <span class="fw700 fs13">${s.uName} <span class="c3 fs11">${s.dept}</span></span>
+          <span class="fs11 c3">${s.date}</span>
+        </div>
+        <div class="fs12 mt4" style="color:var(--text2);line-height:1.5;">${s.content.slice(0,70)}${s.content.length>70?'…':''}</div>
+        <div class="row gap4 mt6 wrap">
+          <span class="tag-pill" style="background:var(--text);color:#fff;font-size:9px;margin:0;">#${s.model}</span>
+          <span class="tag-pill" style="background:var(--accent);color:#fff;font-size:9px;margin:0;">#${s.situ}</span>
+        </div>
+      </div>`).join('');
+  },
+
+  async deleteStoryAdmin(storyId) {
+    const s = (S._storiesAll||[]).find(s=>s.id===storyId);
+    const preview = s ? `"${s.content.slice(0,30)}${s.content.length>30?'…':''}"` : storyId;
+    if (!confirm(`아래 인사이트를 삭제하시겠습니까?\n\n${preview}\n\n작성자: ${s?.uName||''} (${s?.dept||''})\n\n삭제 후 복구할 수 없습니다.`)) return;
+    await FB.delStory(storyId);
+    if (S._storiesAll) S._storiesAll = S._storiesAll.filter(s=>s.id!==storyId);
+    if (S._stories)    delete S._stories[storyId];
+    toast('삭제 완료');
+    this._renderStoriesAdminTable(S._storiesAll||[]);
   },
 
   // Stories admin checkbox
